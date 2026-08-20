@@ -1,5 +1,9 @@
 package com.secureguard.enterprise.services
 
+import com.secureguard.enterprise.data.model.Asset
+import com.secureguard.enterprise.data.model.Detection
+import com.secureguard.enterprise.data.model.DetectionSource
+import com.secureguard.enterprise.data.model.SearchResult
 import com.secureguard.enterprise.mcp.EmailProvider
 import com.secureguard.enterprise.mcp.DefaultEmailProvider
 import com.secureguard.enterprise.mcp.OTPDetector
@@ -106,6 +110,12 @@ class TempMailService @Inject constructor() {
 
     suspend fun getLastOTP(): OTPResult? = _lastOTP.value
 
+    /** Wartet auf eine E-Mail in der aktuellen Inbox (Roh-Mail für Knoten-Suche). */
+    suspend fun waitForEmail(inboxId: String, timeoutMs: Long = 45000): ProviderEmail? =
+        runCatching {
+            provider.waitForEmail(inboxId, _currentInbox.value?.token, timeoutMs)
+        }.getOrNull()
+
     fun clearInbox() {
         _currentInbox.value = null
         _lastOTP.value = null
@@ -164,6 +174,9 @@ class TempMailService @Inject constructor() {
             }
         }
     }
+
+    /** Rückwärtskompatibles Such-Interface — Temp-Mail-Kanal ist Pilot-TODO. */
+    suspend fun searchAsset(asset: Asset): Detection? = null
 
     /** Suche (neues SearchResult-Interface — erhält E-Mail-OTP-Schritte als Detection). */
     suspend fun searchAssetResult(asset: Asset): SearchResult {

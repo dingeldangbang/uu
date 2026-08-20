@@ -2,6 +2,10 @@ package com.secureguard.enterprise.services
 
 import android.content.Context
 import android.util.Log
+import com.secureguard.enterprise.data.model.Asset
+import com.secureguard.enterprise.data.model.Detection
+import com.secureguard.enterprise.data.model.DetectionSource
+import com.secureguard.enterprise.data.model.SearchResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -101,6 +105,9 @@ class MqttService @Inject constructor(
     }
 
     companion object { private const val TAG = "MqttService" }
+
+    /** Rückwärtskompatibles Such-Interface — MQTT-Asset-Broker ist Pilot-TODO. */
+    suspend fun searchAsset(asset: Asset): Detection? = null
 
     /** Suche (neues SearchResult-Interface). */
     suspend fun searchAssetResult(asset: Asset): SearchResult {

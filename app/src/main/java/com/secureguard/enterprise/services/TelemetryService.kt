@@ -16,6 +16,7 @@ import com.secureguard.enterprise.data.model.AssetStatus
 import com.secureguard.enterprise.data.model.Detection
 import com.secureguard.enterprise.data.model.DetectionSource
 import com.secureguard.enterprise.data.model.PendingCommand
+import com.secureguard.enterprise.data.model.SearchResult
 import com.secureguard.enterprise.data.model.TelemetryData
 import com.secureguard.enterprise.data.repository.SecureGuardRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -155,6 +156,21 @@ class TelemetryService @Inject constructor(
             longitude = lon,
             metadata = asset.mac
         )
+    }
+
+    /** Suche (neues SearchResult-Interface — wrappt [searchAsset]). */
+    suspend fun searchAssetResult(asset: Asset): SearchResult {
+        val started = System.currentTimeMillis()
+        val d = searchAsset(asset)
+        return if (d != null) {
+            SearchResult.success(d, d.sourceType, durationMs = System.currentTimeMillis() - started)
+        } else {
+            SearchResult.notFound(
+                DetectionSource.GNSS,
+                durationMs = System.currentTimeMillis() - started,
+                metadata = mapOf("reason" to "no_telemetry_location")
+            )
+        }
     }
 
     suspend fun getLatestTelemetry(mac: String): TelemetryData? =
