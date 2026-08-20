@@ -19,6 +19,17 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+
+        // ────── BuildConfig — API-Keys (leer im Pilot) ──────
+        buildConfigField "String", "WIGLE_API_KEY",          "\"\""
+        buildConfigField "String", "OPEN_CHARGE_MAP_KEY",   "\"\""
+        buildConfigField "String", "NETATMO_TOKEN",          "\"\""
+        buildConfigField "String", "GOOGLE_API_KEY",        "\"\""
+        buildConfigField "String", "HELIUM_API_KEY",        "\"\""
+        buildConfigField "String", "DHL_API_KEY",           "\"\""
+        buildConfigField "String", "MQTT_BROKER_URL",      "\"tcp://localhost:1883\""
+        buildConfigField "String", "WEBSOCKET_URL",         "\"wss://localhost/ws\""
+        buildConfigField "String", "MCP_PROVIDER",          "\"freecustom\""
     }
 
     signingConfigs {
@@ -178,4 +189,17 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
+
+    // ── Ergänzt 2026-Q4 — Maven (war außerhalb des deps-Blocks): ──
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.startup:startup-runtime:1.1.1'
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'com.squareup.moshi:moshi:1.15.1'
+    implementation 'com.squareup.moshi:moshi-kotlin:1.15.1'
+    implementation 'com.squareup.retrofit2:converter-moshi:2.11.0'
+    implementation 'com.squareup.okhttp3:okhttp-sse:4.12.0'
+    implementation 'androidx.compose.material3:material3-window-size-class:1.2.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0'
 }
+
