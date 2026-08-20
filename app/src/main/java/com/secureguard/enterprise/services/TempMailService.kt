@@ -1,45 +1,38 @@
 package com.secureguard.enterprise.services
 
-import com.google.gson.Gson
-import com.secureguard.enterprise.mcp.InboxResult
-import com.secureguard.enterprise.mcp.OTPResult
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import com.secureguard.enterprise.mcp.EmailProvider
+import com.secureguard.enterprise.mcp.DefaultEmailProvider
+import com.secureguard.enterprise.mcp.OTPDetector
+import com.secureguard.enterprise.mcp.ProviderEmail
+import com.secureguard.enterprise.mcp.ProviderInbox
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * TempMailService — temporäre E-Mail-Inboxen für automatische Registrierung
- * und OTP-Empfang (legitime Test-/QA-Zwecke).
+ * TempMailService — provider-agnostischer Wrapper für temporäre
+ * E-Mail-Inboxen und OTP-Empfang.
  *
- * REST-basiert gegen den konfigurierten Provider:
- *   POST /v1/inboxes/create      → neue Inbox
- *   GET  /v1/inboxes/{id}/emails → E-Mails abrufen
+ * Standard-Provider ist FreeCustom.Email (REST + 1s-Poll-Loop). Über die
+ * System-Property `secureguard.mcp.provider` ist konfigurierbar:
+ *   freecustom | courier | mailagent | apify-otp
  *
- * Zusätzlich wird `MCPClient` als Alternative für WebSocket-basierte
- * Provider bereitgehalten.
+ * Drei Backup-Strategien (2026-Stand):
+ *   1. `createAndWaitForOTP(timeoutMs)` — One-Shot, bevorzugt
+ *   2. `waitForOTP(timeoutMs)`          — 2-Schritt (Inbox + Wait)
+ *   3. `extractMagicLink(...)`          — falls bevorzugt
+ *
+ * `OTPDetector` macht provider-agnostische Heuristik (numeric, alphanum,
+ * Schlüsselwörter, Magic-Link-Priorität).
  */
 @Singleton
 class TempMailService @Inject constructor() {
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
-
-    private val gson = Gson()
-
-    companion object {
-        private const val API_BASE = "https://api.freecustom.email"
-    }
+    // ── Provider zur Laufzeit umschaltbar (via System-Property lesbar) ──
+    private val provider: EmailProvider
+        get() = DefaultEmailProvider.select()
 
     // ── State für die UI ──
     private val _currentInbox = MutableStateFlow<InboxResult?>(null)
@@ -51,63 +44,57 @@ class TempMailService @Inject constructor() {
     private val _isProcessing = MutableStateFlow(false)
     val isProcessing: StateFlow<Boolean> = _isProcessing.asStateFlow()
 
-    // ── Inbox erstellen ──
+    /** Welcher Provider aktuell genutzt wird (für UI-Anzeige). */
+    val providerName: String get() = provider.name
+
+    // ── E-Mail / Inbox ──
     suspend fun createInbox(): InboxResult? {
         _isProcessing.value = true
         return try {
-            val request = Request.Builder()
-                .url("$API_BASE/v1/inboxes/create")
-                .post(RequestBody.create(null, ""))
-                .build()
-
-            val inbox = withContext(Dispatchers.IO) {
-                client.newCall(request).execute().use { resp ->
-                    gson.fromJson(resp.body?.string() ?: "{}", Inbox::class.java)
-                }
+            val p: ProviderInbox? = provider.createInbox()
+            if (p != null) {
+                val result = InboxResult(
+                    success = true,
+                    email   = p.email,
+                    token   = p.token,
+                    inboxId = p.inboxId,
+                    providerName = providerName
+                )
+                _currentInbox.value = result
+                _isProcessing.value = false
+                result
+            } else {
+                _isProcessing.value = false
+                null
             }
-            val result = InboxResult(
-                success = inbox.id.isNotBlank(),
-                email = inbox.address,
-                inboxId = inbox.id
-            )
-            if (result.success) _currentInbox.value = result
-            _isProcessing.value = false
-            result
         } catch (e: Exception) {
             _isProcessing.value = false
             null
         }
     }
 
-    // ── Auf E-Mail warten ──
-    suspend fun waitForEmail(inboxId: String, timeoutMs: Long = 45000): Email? {
-        val start = System.currentTimeMillis()
-        while (System.currentTimeMillis() - start < timeoutMs) {
-            val emails = getEmails(inboxId)
-            if (emails.isNotEmpty()) return emails.first()
-            delay(1000)
+    // ── One-Shot-Pfad (MailAgent-/Courier-Style) ──
+    suspend fun createAndWaitForOTP(timeoutMs: Long = 45000): OTPResult? {
+        _isProcessing.value = true
+        return try {
+            val email: ProviderEmail? = provider.createAndWaitForOTP(timeoutMs)
+            val result = email.let { mapEmailToOTPResult(it, providerName) }
+            _lastOTP.value = result
+            _isProcessing.value = false
+            result
+        } catch (e: Exception) {
+            _isProcessing.value = false
+            OTPResult(success = false, error = e.message ?: "Exception")
         }
-        return null
     }
 
-    // ── OTP abrufen (für UI) ──
+    // ── 2-Schritt-Pfad ──
     suspend fun waitForOTP(timeoutMs: Long = 45000): OTPResult? {
         val inbox = _currentInbox.value ?: return null
         _isProcessing.value = true
         return try {
-            val email = waitForEmail(inbox.inboxId, timeoutMs)
-            val otp = email?.body?.let { extractOTP(it) }
-            val result = if (otp != null) {
-                OTPResult(
-                    success = true,
-                    otp = otp,
-                    email = inbox.email,
-                    from = email?.from ?: "",
-                    subject = email?.subject ?: ""
-                )
-            } else {
-                OTPResult(success = false, error = "Kein OTP empfangen (Timeout?)")
-            }
+            val email = provider.waitForEmail(inbox.inboxId, inbox.token, timeoutMs)
+            val result = mapEmailToOTPResult(email, providerName)
             _lastOTP.value = result
             _isProcessing.value = false
             result
@@ -117,31 +104,7 @@ class TempMailService @Inject constructor() {
         }
     }
 
-    // ── E-Mails abrufen ──
-    suspend fun getEmails(inboxId: String): List<Email> {
-        return try {
-            val request = Request.Builder()
-                .url("$API_BASE/v1/inboxes/$inboxId/emails")
-                .get()
-                .build()
-
-            withContext(Dispatchers.IO) {
-                client.newCall(request).execute().use { resp ->
-                    val body = resp.body?.string() ?: "[]"
-                    gson.fromJson(body, Array<Email>::class.java).toList()
-                }
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    // ── OTP / Magic-Link Extraktion ──
-    fun extractOTP(emailBody: String): String? =
-        Regex("\\b\\d{4,6}\\b").find(emailBody)?.value
-
-    fun extractMagicLink(emailBody: String): String? =
-        Regex("https?://[\\w./?=&-]+").find(emailBody)?.value
+    suspend fun getLastOTP(): OTPResult? = _lastOTP.value
 
     fun clearInbox() {
         _currentInbox.value = null
@@ -149,24 +112,76 @@ class TempMailService @Inject constructor() {
         _isProcessing.value = false
     }
 
-    /** Automatisierter Flow: Inbox → warte auf OTP. */
-    suspend fun autoRegisterAndGetOTP(serviceName: String, timeoutMs: Long = 45000): OTPResult? {
-        val inbox = createInbox() ?: return null
-        // Der Agent verwendet inbox.email für die Registrierung
-        return waitForOTP(timeoutMs)
+    /** Provider-agnostische OTP/MagicLink-Extraktion aus Rohtext. */
+    fun extractOTP(emailBody: String): String? =
+        OTPDetector.extract(subject = "", body = emailBody).let { (it as? OTPDetector.Extracted.OTP)?.code }
+
+    fun extractMagicLink(emailBody: String): String? =
+        OTPDetector.extract(subject = "", body = emailBody).let { (it as? OTPDetector.Extracted.MagicLink)?.url }
+
+    /** Erweitert: priorisiert MagicLink > OTP > None, mit confidence. */
+    fun extract(subject: String, body: String): OTPDetector.Extracted = OTPDetector.extract(subject, body)
+
+    /** Automatisierter Standard-Flow (für UI-Button / Agent-Calls). */
+    suspend fun autoRegisterAndGetOTP(serviceName: String, timeoutMs: Long = 45000): OTPResult? =
+        createAndWaitForOTP(timeoutMs)
+
+    // ── Mapping Provider-Response → interne Result-Klasse ──
+    private fun mapEmailToOTPResult(email: ProviderEmail?, providerName: String): OTPResult {
+        if (email == null) return OTPResult(success = false, error = "Timeout oder keine Mail empfangen", providerName = providerName)
+
+        val ext = OTPDetector.extract(subject = email.subject, body = email.body)
+        return when (ext) {
+            is OTPDetector.Extracted.OTP -> {
+                OTPResult(
+                    success      = true,
+                    otp          = ext.code,
+                    email        = email.subject.let { "" } .let { "" } + "", // subject-as-email placeholder
+                    from         = email.from,
+                    subject      = email.subject,
+                    magicLink    = null,
+                    providerName = providerName
+                )
+            }
+            is OTPDetector.Extracted.MagicLink -> {
+                OTPResult(
+                    success      = true,
+                    otp          = null,
+                    from         = email.from,
+                    subject      = email.subject,
+                    magicLink    = ext.url,
+                    providerName = providerName
+                )
+            }
+            OTPDetector.Extracted.None -> {
+                OTPResult(
+                    success      = false,
+                    error        = "Kein OTP/MagicLink im E-Mail-Body erkannt",
+                    from         = email.from,
+                    subject      = email.subject,
+                    providerName = providerName
+                )
+            }
+        }
     }
 }
 
-data class Inbox(
-    val id: String = "",
-    val address: String = "",
-    val createdAt: String = ""
+data class InboxResult(
+    val success: Boolean,
+    val email: String = "",
+    val token: String = "",
+    val inboxId: String = "",
+    val providerName: String = "",
+    val error: String? = null
 )
 
-data class Email(
-    val id: String = "",
+data class OTPResult(
+    val success: Boolean,
+    val otp: String? = null,
+    val email: String = "",
+    val magicLink: String? = null,
     val from: String = "",
     val subject: String = "",
-    val body: String = "",
-    val receivedAt: String = ""
+    val providerName: String = "",
+    val error: String? = null
 )

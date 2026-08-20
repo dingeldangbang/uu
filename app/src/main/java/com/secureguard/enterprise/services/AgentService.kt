@@ -170,10 +170,12 @@ class AgentService @Inject constructor(
     // ─────────────────── Temporäre E-Mail / Registrierung ───────────────────
 
     /**
-     * Automatisierte Registrierung eines externen Dienstes:
-     * 1. Temporäre Inbox erstellen (TempMailService)
-     * 2. Registrierung mit der temporären E-Mail durchführen
-     * 3. Auf OTP warten und extrahieren
+     * Auto-Registrierung mit temporärer E-Mail (2026-Stand):
+     *   1. Inbox erstellen (URL-getrennt von OTP)
+     *   2. Bei `serviceName` registrieren (HTTP/WebView)
+     *   3. Auf OTP/MagicLink warten (MailAgent-Style One-Shot falls Provider es bietet,
+     *      sonst klassisches 2-Schritt-Poll)
+     *   4. OTPDetector liefert OTP-Code oder Magic-Link mit Confidence
      *
      * NUR für legitime Zwecke (firmeninterne Testumgebungen, autorisierte
      * API-Key-Generierung). Keine Umgehung von Sicherheitsmaßnahmen.
@@ -181,31 +183,34 @@ class AgentService @Inject constructor(
     suspend fun autoRegisterExternalService(
         serviceName: String,
         registrationUrl: String,
-        registrationData: Map<String, String>
+        registrationData: Map<String, String>,
+        timeoutMs: Long = 45000
     ): RegistrationResult {
-        return try {
-            val inbox = tempMailService.createInbox()
-                ?: return RegistrationResult(false, error = "Konnte keine temporäre Inbox erstellen")
+        // 1. Inbox erstellen und Inbox-Adresse greifen
+        val inbox = tempMailService.createInbox()
+            ?: return RegistrationResult(false, error = "Temporäre Inbox konnte nicht erstellt werden")
 
-            val registerSuccess = performRegistration(serviceName, registrationUrl, registrationData, inbox.email)
-            if (!registerSuccess) {
-                return RegistrationResult(false, error = "Registrierung bei $serviceName fehlgeschlagen", email = inbox.email)
-            }
-
-            val otpResult = tempMailService.waitForOTP()
-            if (otpResult?.success == true) {
-                RegistrationResult(
-                    success = true,
-                    email = inbox.email,
-                    otp = otpResult.otp,
-                    inboxToken = inbox.token
-                )
-            } else {
-                RegistrationResult(false, error = "Kein OTP empfangen", email = inbox.email)
-            }
-        } catch (e: Exception) {
-            RegistrationResult(false, error = e.message ?: "Unbekannter Fehler")
+        // 2. Bei externem Dienst registrieren (Stub: true; echte Implementierung
+        //    via HTTP-Client oder WebView)
+        val registerSuccess = performRegistration(
+            serviceName, registrationUrl, registrationData, inbox.email
+        )
+        if (!registerSuccess) {
+            return RegistrationResult(false, error = "Registrierung bei $serviceName fehlgeschlagen", email = inbox.email)
         }
+
+        // 3. Auf OTP warten (intern kombiniert die aktive Inbox-Lookup mit Wait)
+        val otpResult = tempMailService.waitForOTP(timeoutMs)
+            ?: return RegistrationResult(false, error = "Kein OTP empfangen (timeout=${timeoutMs}ms)", email = inbox.email)
+
+        return RegistrationResult(
+            success      = otpResult.success,
+            email        = inbox.email,
+            otp          = otpResult.otp.orEmpty(),
+            magicLink    = otpResult.magicLink.orEmpty(),
+            providerName = otpResult.providerName.ifEmpty { tempMailService.providerName },
+            error        = otpResult.error
+        )
     }
 
     /** Führt die tatsächliche Registrierung durch (HTTP/WebView — Stub für die Integration). */
@@ -231,6 +236,7 @@ data class RegistrationResult(
     val success: Boolean,
     val email: String = "",
     val otp: String = "",
-    val inboxToken: String = "",
+    val magicLink: String = "",
+    val providerName: String = "",
     val error: String? = null
 )
