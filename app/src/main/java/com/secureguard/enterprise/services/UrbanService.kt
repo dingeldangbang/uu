@@ -73,7 +73,7 @@ class UrbanService @Inject constructor(
             val started = wm.startScan()
             if (started) {
                 lastWifiScan = wm.scanResults
-                    .map { WifiResult(it.ssid, it.bssid, it.level, it.frequency) }
+                    .map { WifiResult(it.SSID, it.BSSID, it.level, it.frequency) }
                     .sortedByDescending { it.rssi }
                 Log.i(TAG, "WLAN-Scan: ${lastWifiScan.size} Netze")
             }
@@ -89,7 +89,7 @@ class UrbanService @Inject constructor(
         wifiManager?.let { wm ->
             if (hasWifiPermission()) {
                 lastWifiScan = wm.scanResults
-                    .map { WifiResult(it.ssid, it.bssid, it.level, it.frequency) }
+                    .map { WifiResult(it.SSID, it.BSSID, it.level, it.frequency) }
                     .sortedByDescending { it.rssi }
             }
         }
@@ -118,7 +118,7 @@ class UrbanService @Inject constructor(
             is CellInfoLte -> CellResult(
                 networkType = "LTE",
                 rssi = cell.cellSignalStrength?.rssi ?: 0,
-                cellId = cell.cellIdentity?.ci,
+                cellId = cell.cellIdentity?.ci?.toLong(),
                 lac = cell.cellIdentity?.tac
             )
             is CellInfoNr -> CellResult(
@@ -130,7 +130,7 @@ class UrbanService @Inject constructor(
             is CellInfoGsm -> CellResult(
                 networkType = "GSM",
                 rssi = cell.cellSignalStrength?.rssi ?: 0,
-                cellId = cell.cellIdentity?.cid,
+                cellId = cell.cellIdentity?.cid?.toLong(),
                 lac = cell.cellIdentity?.lac
             )
             else -> null

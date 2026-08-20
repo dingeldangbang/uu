@@ -25,8 +25,3 @@ data class ActionResult(
         val Processing = ActionResult(false, "Wird ausgeführt...")
     }
 }
-
-data class SearchResult(
-    val found: Boolean,
-    val detection: Detection? = null
-)
