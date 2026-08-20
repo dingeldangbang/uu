@@ -73,3 +73,5 @@ Workflow `honeywell-experimental.yml`.
 - [`wischiwaschi.md`](wischiwaschi.md) — Projektdoku
 - [`wischiwaschi-delivery.md`](wischiwaschi-delivery.md) — Delivery-Notizen
 - [`BETRIEBSVEREINBARUNG.md`](BETRIEBSVEREINBARUNG.md) — Blueprint (nicht an UI gebunden)
+
+<!-- build-verification round -->
