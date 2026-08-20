@@ -29,16 +29,27 @@ services:
       KEY_ALIAS: "${KEY_ALIAS:-}"
       KEY_PASSWORD: "${KEY_PASSWORD:-}"
     command: >
-      bash -c "set -euo pipefail;
+      bash -c "set -uo pipefail;
+               echo '::notice::CONTAINER-START';
                if [ -n \"$${KEYSTORE_BASE64:-}\" ]; then
                  echo \"$$KEYSTORE_BASE64\" | base64 -d > app/secureguard-keystore.jks;
                else
                  echo 'Hinweis: KEYSTORE_BASE64 nicht gesetzt — unsigned Check-Build.';
                fi;
-               ./gradlew --no-daemon --console=plain assembleRelease;
-               mkdir -p /dist;
-               cp app/build/outputs/apk/release/*.apk /dist/;
-               ls -l /dist"
+               echo '::notice::GRADLE-START';
+               ./gradlew --no-daemon --console=plain assembleRelease > /tmp/build.log 2>&1;
+               rc=$$?;
+               if [ $$rc -eq 0 ]; then
+                 mkdir -p /dist;
+                 cp app/build/outputs/apk/release/*.apk /dist/;
+                 ls -l /dist;
+                 echo '::notice::GRADLE-OK';
+               else
+                 echo '::error::GRADLE-FAILED exit='$$rc;
+                 ERR=\$(grep -A 80 'What went wrong' /tmp/build.log | head -n 60 || tail -n 40 /tmp/build.log);
+                 echo \"$${ERR}\" | tr '\n' '|' | fold -w 1500 | sed 's/^/::error::GRADLE: /';
+               fi;
+               exit $$rc"
 
 volumes:
   gradle-cache:

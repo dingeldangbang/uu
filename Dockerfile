@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-#
 # wischiwaschi / SecureGuard Enterprise — reproduzierbares Build-Image
 # ─────────────────────────────────────────────────────────────────
 # Erzeugt ein Toolchain-Image (JDK 17 + Android SDK 34 + Build-Tools).
@@ -21,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ARG CMDLINE_TOOLS_VERSION=11076708
 RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
-    && curl -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" -o /tmp/ct.zip \
+    && curl --retry 3 --retry-delay 5 -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" -o /tmp/ct.zip \
     && unzip -qq /tmp/ct.zip -d ${ANDROID_HOME}/cmdline-tools \
     && mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
     && rm /tmp/ct.zip
