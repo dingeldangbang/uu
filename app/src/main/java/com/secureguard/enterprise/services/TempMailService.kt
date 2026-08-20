@@ -110,6 +110,12 @@ class TempMailService @Inject constructor() {
 
     suspend fun getLastOTP(): OTPResult? = _lastOTP.value
 
+    /** Wartet auf eine E-Mail in der aktuellen Inbox (Roh-Mail für Knoten-Suche). */
+    suspend fun waitForEmail(inboxId: String, timeoutMs: Long = 45000): ProviderEmail? =
+        runCatching {
+            provider.waitForEmail(inboxId, _currentInbox.value?.token, timeoutMs)
+        }.getOrNull()
+
     fun clearInbox() {
         _currentInbox.value = null
         _lastOTP.value = null

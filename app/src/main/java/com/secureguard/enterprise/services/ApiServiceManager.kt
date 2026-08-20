@@ -5,22 +5,21 @@ import com.secureguard.enterprise.data.model.Detection
 import com.secureguard.enterprise.data.model.DetectionSource
 import com.secureguard.enterprise.data.repository.SecureGuardRepository
 import com.secureguard.enterprise.services.apis.CKANOpenDataApi
-import com.secureguard.enterprise.services.apis.CKANDataset
-import com.secureguard.enterprise.services.apis.ChargingStation
+import com.secureguard.enterprise.services.apis.CkanDataset
 import com.secureguard.enterprise.services.apis.CrowdApi
 import com.secureguard.enterprise.services.apis.FreeCrowdProvider
 import com.secureguard.enterprise.services.apis.GeolocationRequest
 import com.secureguard.enterprise.services.apis.GoogleGeolocationApi
-import com.secureguard.enterprise.services.apis.HelioSpot
+import com.secureguard.enterprise.services.apis.HeliumHotspot
 import com.secureguard.enterprise.services.apis.HeliumNetworkApi
 import com.secureguard.enterprise.services.apis.MacLookupApi
 import com.secureguard.enterprise.services.apis.MacLookupResponse
 import com.secureguard.enterprise.services.apis.NetatmoDevice
 import com.secureguard.enterprise.services.apis.NetatmoWeatherApi
 import com.secureguard.enterprise.services.apis.OpenChargeMapApi
-import com.secureguard.enterprise.services.apis.Packstation
-import com.secureguard.enterprise.services.apis.WigleApi
-import com.secureguard.enterprise.services.apis.WigleResponse
+import com.secureguard.enterprise.services.apis.OpenChargeStation
+import com.secureguard.enterprise.services.apis.WiGleApi
+import com.secureguard.enterprise.services.apis.WiGleResult
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -67,7 +66,7 @@ class ApiServiceManager @Inject constructor(
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
 
-    private val wigle: WigleApi by lazy { retrofit("https://api.wigle.net/").create(WigleApi::class.java) }
+    private val wigle: WiGleApi by lazy { retrofit("https://api.wigle.net/").create(WiGleApi::class.java) }
     private val macLookup: MacLookupApi by lazy { retrofit("https://api.maclookup.app/").create(MacLookupApi::class.java) }
     private val openChargeMap: OpenChargeMapApi by lazy { retrofit("https://api.openchargemap.io/v3/").create(OpenChargeMapApi::class.java) }
     private val ckan: CKANOpenDataApi by lazy { retrofit("https://demo.ckan.org/").create(CKANOpenDataApi::class.java) }
@@ -86,30 +85,30 @@ class ApiServiceManager @Inject constructor(
 
     // ────────── Eigentliche API-Calls ──────────
 
-    suspend fun searchWigle(bssid: String): WigleResponse? = runCatching {
-        wigle.searchBssid(netid = bssid.replace(":", "").replace("-", ""))
+    suspend fun searchWigle(bssid: String): WiGleResult? = runCatching {
+        wigle.searchBssid(bssid = bssid.replace(":", "").replace("-", "")).body()
     }.getOrNull()
 
     suspend fun searchMacLookup(mac: String): MacLookupResponse? = runCatching {
-        macLookup.lookupMac(mac)
+        macLookup.lookupMac(mac).body()
     }.getOrNull()
 
-    suspend fun searchOpenChargeMap(lat: Double, lon: Double, radius: Int = 1000): List<ChargingStation>? =
-        runCatching { openChargeMap.getStations(lat, lon, radius) }.getOrNull()
+    suspend fun searchOpenChargeMap(lat: Double, lon: Double, radius: Int = 1000): List<OpenChargeStation>? =
+        runCatching { openChargeMap.getStations(lat, lon, radius).body() }.getOrNull()
 
-    suspend fun searchCKAN(query: String): List<CKANDataset>? =
-        runCatching { ckan.searchDatasets(query).result.results }.getOrNull()
+    suspend fun searchCKAN(query: String): List<CkanDataset>? =
+        runCatching { ckan.searchDatasets(query).body()?.result?.results }.getOrNull()
 
     suspend fun searchGoogleGeo(accessPoints: List<com.secureguard.enterprise.services.apis.WifiAccessPoint>):
         com.secureguard.enterprise.services.apis.GeolocationResponse? =
-        runCatching { googleGeo.geolocate(GeolocationRequest(wifiAccessPoints = accessPoints)) }.getOrNull()
+        runCatching { googleGeo.geolocate(GeolocationRequest(wifiAccessPoints = accessPoints)).body() }.getOrNull()
 
     suspend fun searchNetatmo(): List<NetatmoDevice>? = runCatching {
-        netatmo.getStations(accessToken = "Bearer ${BuildConfig.NETATMO_TOKEN}").body.devices
+        netatmo.getStations(accessToken = "Bearer ${BuildConfig.NETATMO_TOKEN}").body()?.body?.devices
     }.getOrNull()
 
-    suspend fun searchHelium(lat: Double, lon: Double, limit: Int = 10): List<HelioSpot>? =
-        runCatching { helium.getHotspots(lat, lon, limit).data }.getOrNull()
+    suspend fun searchHelium(lat: Double, lon: Double, limit: Int = 10): List<HeliumHotspot>? =
+        runCatching { helium.getHotspots(lat, lon).body()?.data }.getOrNull()
 
     /** Provider-agnostische CrowdAPI (ergänzt das mesh aus CrowdService). */
     suspend fun createCrowdInbox(timeoutMs: Long = 45000): String? =

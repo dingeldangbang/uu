@@ -7,6 +7,9 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+import com.squareup.moshi.Moshi
+import okhttp3.OkHttpClient
+
 // ─────────────────────────────────────────────────────────────
 //  DTOs
 // ─────────────────────────────────────────────────────────────
@@ -115,4 +118,30 @@ interface HeliumNetworkApi {
         @Path("lat") lat: Double,
         @Path("lon") lon: Double
     ): Response<HeliumResponse>
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Provider-agnostische Crowd-/Inbox-Schnittstelle
+//  (vom ApiServiceManager als High-Level-Einstieg genutzt;
+//   Pilot-Stub ohne konfigurierten Provider).
+// ─────────────────────────────────────────────────────────────
+
+interface CrowdApi {
+    val name: String
+    suspend fun createInbox(timeoutMs: Long): CrowdInbox?
+}
+
+data class CrowdInbox(
+    val address: String = "",
+    val inboxId: String = "",
+    val token: String = ""
+)
+
+class FreeCrowdProvider(
+    private val client: OkHttpClient,
+    private val moshi: Moshi
+) : CrowdApi {
+    override val name: String get() = "free-crowd"
+
+    override suspend fun createInbox(timeoutMs: Long): CrowdInbox? = null
 }

@@ -30,8 +30,11 @@ services:
       KEY_PASSWORD: "${KEY_PASSWORD:-}"
     command: >
       bash -c "set -euo pipefail;
-               [ -n \"$${KEYSTORE_BASE64:-}\" ] || { echo 'FEHLER: KEYSTORE_BASE64 fehlt — Secret setzen!'; exit 1; };
-               echo \"$$KEYSTORE_BASE64\" | base64 -d > app/secureguard-keystore.jks;
+               if [ -n \"$${KEYSTORE_BASE64:-}\" ]; then
+                 echo \"$$KEYSTORE_BASE64\" | base64 -d > app/secureguard-keystore.jks;
+               else
+                 echo 'Hinweis: KEYSTORE_BASE64 nicht gesetzt — unsigned Check-Build.';
+               fi;
                ./gradlew --no-daemon --console=plain assembleRelease;
                mkdir -p /dist;
                cp app/build/outputs/apk/release/*.apk /dist/;
