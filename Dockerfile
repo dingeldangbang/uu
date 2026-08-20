@@ -7,7 +7,7 @@
 #
 
 # ---- Stage 1 : Java / Android SDK  ------------------------
-FROM eclipse-temurin:17-jdk AS tools
+FROM wischiwaschi-build:latest
 
 ENV ANDROID_HOME=/opt/android-sdk \
     ANDROID_SDK_ROOT=/opt/android-sdk \
@@ -39,7 +39,7 @@ RUN yes | sdkmanager --licenses >/dev/null && \
 # ---- Stage 2 : Gradle-Wrapper (Cache-Layer) ---------------
 # gradlew ist self-bootstrapping: lädt Gradle 8.5 bei Bedarf selbst,
 # dadurch ist kein separater `gradle wrapper`-Schritt nötig.
-FROM tools AS gradle
+FROM wischiwaschi-build:latest
 WORKDIR /src
 COPY gradle gradle
 COPY gradlew ./
@@ -50,7 +50,7 @@ COPY app/build.gradle ./app/
 RUN chmod +x gradlew && ./gradlew --version >/dev/null
 
 # ---- Stage 3 : Build APK  -------------------------------
-FROM gradle AS builder
+FROM wischiwaschi-build:latest
 WORKDIR /src
 COPY . .
 ARG KEYSTORE_BASE64=""
@@ -66,9 +66,9 @@ RUN ./gradlew --no-daemon --console=plain assembleRelease \
  && cp app/build/outputs/apk/release/*.apk /dist/ || true
 
 # ---- Stage 4 : Finale Stage ------------------------------
-FROM eclipse-temurin:17-jre AS runtime
-LABEL org.opencontainers.image.title="secureguard-build" \
-      org.opencontainers.image.description="Android 11 + CT45P-compatible SecureGuard Enterprise APK" \
+FROM wischiwaschi-build:latest
+LABEL org.opencontainers.image.title="wischiwaschi-build" \
+      org.opencontainers.image.description="Android 11 + CT45P-compatible wischiwaschi APK" \
       org.opencontainers.image.source="https://github.com/secureguard/secureguard-enterprise"
 COPY --from=builder /dist /dist
 CMD ["/bin/bash"]

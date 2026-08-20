@@ -1,10 +1,10 @@
-# 🛡️ SecureGuard Enterprise — Betriebsvereinbarung (DSGVO / BDSG)
+# 🛡️ wischiwaschi — Betriebsvereinbarung (DSGVO / BDSG)
 
 > **⚠️ STATUS: BLAUPAUSE — NICHT ANGEBUNDEN (Pilotphase)**  
 > Diese Datei dient **ausschließlich** als Compliance-bezogenes Referenz­
 > dokument. Im laufenden Pilotprojekt wird sie von der App **nicht
 > eingelesen, nicht im UI angezeigt, nicht zur Akzeptanz abgefragt und
-> nicht gegen den Code asserted**. Siehe `SecureGuardApplication.kt`
+> nicht gegen den Code asserted**. Siehe `wischiwaschi.md`
 > (Klasse-Doc): "*Was diese Application NICHT tut*".  
 >
 > **Aktiv-TOMs aus dieser Blaupause sind bereits implementiert**  
@@ -15,7 +15,7 @@
 ---
 
 Diese Vereinbarung regelt die Verarbeitung personenbezogener Daten durch
-die **SecureGuard Enterprise**-Anwendung gemäß DSGVO und BDSG (insb. § 26 BDSG).
+die **wischiwaschi**-Anwendung gemäß DSGVO und BDSG (insb. § 26 BDSG).
 
 ## § 1 — Verantwortlicher
 

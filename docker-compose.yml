@@ -13,8 +13,8 @@ services:
       dockerfile: Dockerfile
       args:
         CMDLINE_TOOLS_VERSION: "${CMDLINE_TOOLS_VERSION:-11076708}"
-    image: secureguard-build:latest
-    container_name: secureguard-build
+    image: wischiwaschi-build:latest
+    container_name: wischiwaschi-build
     working_dir: /src
     volumes:
       - .:/src
