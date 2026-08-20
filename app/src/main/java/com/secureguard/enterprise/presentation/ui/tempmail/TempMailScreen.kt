@@ -152,7 +152,7 @@ fun TempMailScreen(
                             Text("Keine Einträge", style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
-                            items(uiState.logEntries.takeLast(10)) { entry ->
+                            uiState.logEntries.takeLast(10).forEach { entry ->
                                 Text(entry, style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.padding(vertical = 2.dp))
                             }

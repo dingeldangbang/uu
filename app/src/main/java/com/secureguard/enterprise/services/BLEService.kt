@@ -17,6 +17,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -73,58 +74,55 @@ class BLEService @Inject constructor(
             ?: return@withContext SearchResult.error(DetectionSource.BLE, "Scanner nicht verfügbar")
 
         try {
-            val found = suspendCancellableCoroutine<SearchResult> { cont ->
-                results.clear()
-                val callback = object : ScanCallback() {
-                    override fun onScanResult(type: Int, result: LeScanResult) {
-                        val mac = result.device?.address ?: return
-                        if (mac.equals(asset.mac, ignoreCase = true) ||
-                            mac.replace(":", "").equals(
-                                asset.mac.replace(":", "").replace("-", ""),
-                                ignoreCase = true
-                            )
-                        ) {
-                            results[mac] = result
-                            try { scanner.stopScan(this) } catch (_: Exception) {}
-                            if (cont.isActive) cont.resume(parseToSuccess(asset, result, started))
-                        }
-                    }
-
-                    override fun onScanFailed(errorCode: Int) {
-                        if (cont.isActive) {
-                            cont.resume(
-                                SearchResult.error(
-                                    DetectionSource.BLE,
-                                    "Scan failed code=$errorCode",
-                                    durationMs = System.currentTimeMillis() - started
+            val found = withTimeoutOrNull(SCAN_TIMEOUT_MS) {
+                suspendCancellableCoroutine<SearchResult> { cont ->
+                    results.clear()
+                    val callback = object : ScanCallback() {
+                        override fun onScanResult(type: Int, result: LeScanResult) {
+                            val mac = result.device?.address ?: return
+                            if (mac.equals(asset.mac, ignoreCase = true) ||
+                                mac.replace(":", "").equals(
+                                    asset.mac.replace(":", "").replace("-", ""),
+                                    ignoreCase = true
                                 )
-                            )
+                            ) {
+                                results[mac] = result
+                                try { scanner.stopScan(this) } catch (_: Exception) {}
+                                if (cont.isActive) cont.resume(parseToSuccess(asset, result, started))
+                            }
+                        }
+
+                        override fun onScanFailed(errorCode: Int) {
+                            if (cont.isActive) {
+                                cont.resume(
+                                    SearchResult.error(
+                                        DetectionSource.BLE,
+                                        "Scan failed code=$errorCode",
+                                        durationMs = System.currentTimeMillis() - started
+                                    )
+                                )
+                            }
                         }
                     }
+                    cont.invokeOnCancellation {
+                        try { scanner.stopScan(callback) } catch (_: Exception) {}
+                    }
+                    try {
+                        scanner.startScan(callback)
+                    } catch (e: SecurityException) {
+                        cont.resume(SearchResult.error(DetectionSource.BLE, "SecurityException: ${e.message}",
+                            durationMs = System.currentTimeMillis() - started))
+                        return@suspendCancellableCoroutine
+                    }
                 }
-                cont.invokeOnCancellation {
-                    try { scanner.stopScan(callback) } catch (_: Exception) {}
-                }
-                try {
-                    scanner.startScan(callback)
-                } catch (e: SecurityException) {
-                    cont.resume(SearchResult.error(DetectionSource.BLE, "SecurityException: ${e.message}",
-                        durationMs = System.currentTimeMillis() - started))
-                    return@suspendCancellableCoroutine
-                }
-                // Timeout: Scan nach SCAN_TIMEOUT_MS stoppen
-                kotlinx.coroutines.delay(SCAN_TIMEOUT_MS)
-                if (cont.isActive) {
-                    try { scanner.stopScan(callback) } catch (_: Exception) {}
-                    val pick = results.values.firstOrNull()
-                    cont.resume(
-                        pick?.let { parseToSuccess(asset, it, started) }
-                            ?: SearchResult.notFound(
-                                DetectionSource.BLE,
-                                durationMs = System.currentTimeMillis() - started
-                            )
+            } ?: run {
+                // Timeout: Scan gestoppt (invokeOnCancellation) — bestes Teilergebnis verwenden
+                results.values.firstOrNull()
+                    ?.let { parseToSuccess(asset, it, started) }
+                    ?: SearchResult.notFound(
+                        DetectionSource.BLE,
+                        durationMs = System.currentTimeMillis() - started
                     )
-                }
             }
             found
         } catch (e: Exception) {
@@ -139,10 +137,10 @@ class BLEService @Inject constructor(
             durationMs = System.currentTimeMillis() - started
         )
         val foundMac = result.device?.address ?: asset.mac
-        val detection = Detection(
-            timestamp = Date(),
-            sourceType = DetectionSource.BLE,
-            label = scanRecord.deviceName ?: result.device?.name ?: "BLE:${foundMac}",
+            val detection = Detection(
+                timestamp = System.currentTimeMillis(),
+                sourceType = DetectionSource.BLE,
+                label = scanRecord.deviceName ?: result.device?.name ?: "BLE:${foundMac}",
             rssi = result.rssi,
             latitude = null,
             longitude = null,

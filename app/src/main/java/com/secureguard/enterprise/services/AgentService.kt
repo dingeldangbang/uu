@@ -8,7 +8,6 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import androidx.work.isActive
 import com.secureguard.enterprise.data.model.AgentSettings
 import com.secureguard.enterprise.data.model.AgentStatus
 import com.secureguard.enterprise.data.model.DetectionSource
@@ -73,7 +72,7 @@ class AgentService @Inject constructor(
                         _agentStatus.value = _agentStatus.value.copy(running = false)
                     } else {
                         _agentStatus.value = _agentStatus.value.copy(
-                            running = info.state.isActive,
+                            running = info.state == WorkInfo.State.RUNNING || info.state == WorkInfo.State.ENQUEUED,
                             startedAt = if (info.state == WorkInfo.State.RUNNING) {
                                 System.currentTimeMillis()
                             } else _agentStatus.value.startedAt
