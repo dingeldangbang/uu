@@ -58,15 +58,15 @@ fun SettingsScreen(
         HorizontalDivider()
 
         ToggleRow("📡 LoRa / BLE",
-                  state.isEnabled(SettingsRepository.KEY_LORA))    { toggle(it, !state.isEnabled(SettingsRepository.KEY_LORA), "LoRa") }
+                  state.isEnabled(SettingsRepository.KEY_LORA))    { toggle(SettingsRepository.KEY_LORA) }
         ToggleRow("📈 Telemetrie",
-                  state.isEnabled(SettingsRepository.KEY_TELEMETRY)) { toggle(it, !state.isEnabled(SettingsRepository.KEY_TELEMETRY), "Telemetrie") }
+                  state.isEnabled(SettingsRepository.KEY_TELEMETRY)) { toggle(SettingsRepository.KEY_TELEMETRY) }
         ToggleRow("👁️ Optische Erkennung",
-                  state.isEnabled(SettingsRepository.KEY_OPTICAL))  { toggle(it, !state.isEnabled(SettingsRepository.KEY_OPTICAL), "Optik") }
+                  state.isEnabled(SettingsRepository.KEY_OPTICAL))  { toggle(SettingsRepository.KEY_OPTICAL) }
         ToggleRow("🌍 Crowdsourcing",
-                  state.isEnabled(SettingsRepository.KEY_CROWD))    { toggle(it, !state.isEnabled(SettingsRepository.KEY_CROWD), "Crowdsourcing") }
+                  state.isEnabled(SettingsRepository.KEY_CROWD))    { toggle(SettingsRepository.KEY_CROWD) }
         ToggleRow("🌙 Dark Mode",
-                  state.isEnabled(SettingsRepository.KEY_DARK))     { toggle(it, !state.isEnabled(SettingsRepository.KEY_DARK), "Dark Mode") }
+                  state.isEnabled(SettingsRepository.KEY_DARK))     { toggle(SettingsRepository.KEY_DARK) }
 
         HorizontalDivider()
         Text("Aufbewahrung", style = MaterialTheme.typography.titleSmall)
