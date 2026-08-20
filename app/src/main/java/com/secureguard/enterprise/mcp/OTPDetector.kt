@@ -89,12 +89,12 @@ object OTPDetector {
 
     /** Schlüssel-Phrasen, denen wir höher vertrauen. */
     private val PRIVILEGED_KEYWORDS = listOf(
-        """"code"\s*:\s*"?"""                // "code": "..." oder "code":"..."
-        """"code"\s*is\s*"?"""                  // code is: ...
-        """"otp"\s*:\s*"?"""                  // json / inline
-        """"otp"\s*is\s*"?"""                  // otp is: xxxxx
-        """verification\s+code\s*[:\-=]?\s*"?"""   // verification code:xxxxx
-        """code\s+de\s+vérification\s*[:\-=]?\s*"?""" // FR
+        """"code"\s*:\s*"?""",                // "code": "..." oder "code":"..."
+        """"code"\s*is\s*"?""",                  // code is: ...
+        """"otp"\s*:\s*"?""",                  // json / inline
+        """"otp"\s*is\s*"?""",                  // otp is: xxxxx
+        """verification\s+code\s*[:\-=]?\s*"?""",   // verification code:xxxxx
+        """code\s+de\s+vérification\s*[:\-=]?\s*"?""", // FR
         """code\s+de\s+verificación\s*[:\-=]?\s*"?""" // ES
     )
 }
