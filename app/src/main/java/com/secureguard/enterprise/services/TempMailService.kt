@@ -1,5 +1,9 @@
 package com.secureguard.enterprise.services
 
+import com.secureguard.enterprise.data.model.Asset
+import com.secureguard.enterprise.data.model.Detection
+import com.secureguard.enterprise.data.model.DetectionSource
+import com.secureguard.enterprise.data.model.SearchResult
 import com.secureguard.enterprise.mcp.EmailProvider
 import com.secureguard.enterprise.mcp.DefaultEmailProvider
 import com.secureguard.enterprise.mcp.OTPDetector
@@ -164,6 +168,9 @@ class TempMailService @Inject constructor() {
             }
         }
     }
+
+    /** Rückwärtskompatibles Such-Interface — Temp-Mail-Kanal ist Pilot-TODO. */
+    suspend fun searchAsset(asset: Asset): Detection? = null
 
     /** Suche (neues SearchResult-Interface — erhält E-Mail-OTP-Schritte als Detection). */
     suspend fun searchAssetResult(asset: Asset): SearchResult {

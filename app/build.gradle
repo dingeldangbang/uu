@@ -160,11 +160,14 @@ dependencies {
     implementation "androidx.camera:camera-view:1.3.1"
 
     // 🔃 Honeywell DataCollection SDK (CT45P / Android 11)
-    // ⚠ Falls Maven unparktbar: AAR manuell in app/libs/ legen und via `fileTree` einbinden
-    //   (Honeywell Tech Portal: https://honeywell.com/connect-honeywell)
-    implementation 'com.honeywell.aidc:aidc:3.0.0'
-    // Fallback wenn AAR lokal vorhanden:
-    // implementation fileTree(include: ['*.aar'], dir: 'libs')
+    // Das echte SDK wird nur über das Honeywell Tech-Portal als AAR verteilt
+    // (nicht in öffentlichen Maven-Repos). Daher kompiliert die App gegen den
+    // Build-Zeit-Stub `:aidc-stub` (com.honeywell.aidc.* — BarcodeReader.from()
+    // liefert null → Scanner ehrlich "nicht verfügbar").
+    // Echtes AAR einbinden: app/libs/aidc.aar ablegen und diese Zeile ersetzen durch:
+    //     implementation fileTree(dir: 'libs', include: ['*.aar'])
+    // (CI-Check: Workflow honeywell-experimental.yml)
+    implementation project(':aidc-stub')
 
     // 📧 Temporäre E-Mail / MCP + API-Node-Manager
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'

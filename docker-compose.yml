@@ -1,10 +1,11 @@
-# Compose for a reproducible SecureGuard Enterprise Android build.
+# Compose für einen reproduzierbaren wischiwaschi-Android-Build.
 #
 # Usage:
-#   docker compose build secureguard   # produces /dist/app-release.apk
-#   docker compose run  secureguard   # interactive
+#   docker compose build secureguard         # Toolchain-Image bauen (JDK17+SDK34)
+#   docker compose run --rm secureguard      # APK bauen → ./dist/
 #
-# Secrets (KEYSTORE_BASE64, etc.) flow in via env_file.
+# Secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD)
+# fließen als Umgebungsvariablen ein (aus der Shell bzw. CI-Umgebung).
 
 services:
   secureguard:
@@ -18,7 +19,7 @@ services:
     working_dir: /src
     volumes:
       - .:/src
-      - android-sdk:/opt/android-sdk
+      - ./dist:/dist
       - gradle-cache:/root/.gradle
     environment:
       ANDROID_HOME: /opt/android-sdk
@@ -28,11 +29,13 @@ services:
       KEY_ALIAS: "${KEY_ALIAS:-}"
       KEY_PASSWORD: "${KEY_PASSWORD:-}"
     command: >
-      bash -c "./gradlew --no-daemon --console=plain assembleRelease &&
-               mkdir -p /dist &&
-               cp app/build/outputs/apk/release/*.apk /dist/ &&
+      bash -c "set -euo pipefail;
+               [ -n \"$${KEYSTORE_BASE64:-}\" ] || { echo 'FEHLER: KEYSTORE_BASE64 fehlt — Secret setzen!'; exit 1; };
+               echo \"$$KEYSTORE_BASE64\" | base64 -d > app/secureguard-keystore.jks;
+               ./gradlew --no-daemon --console=plain assembleRelease;
+               mkdir -p /dist;
+               cp app/build/outputs/apk/release/*.apk /dist/;
                ls -l /dist"
 
 volumes:
-  android-sdk:
   gradle-cache:

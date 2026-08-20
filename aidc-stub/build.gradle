@@ -1,0 +1,42 @@
+// ─────────────────────────────────────────────────────────────
+//  aidc-stub — Build-Zeit-Stub für das Honeywell DataCollection SDK
+//
+//  Das echte Honeywell-AIDC-SDK (CT45P) wird über das Honeywell
+//  Tech-Portal als AAR verteilt und ist NICHT in öffentlichen
+//  Maven-Repos verfügbar. Damit der Rest der App unabhängig davon
+//  kompiliert und läuft, stellt dieses Modul die minimal benötigte
+//  API-Oberfläche (com.honeywell.aidc.*) als harmlosen Stub bereit:
+//
+//    • BarcodeReader.from(ctx)  →  null  („Scanner nicht verfügbar")
+//    • alle Listener/Callbacks  →  No-Ops
+//
+//  Echtes SDK einbinden (optional):
+//    1. AAR aus dem Honeywell Tech-Portal herunterladen
+//    2. app/libs/aidc.aar ablegen
+//    3. In app/build.gradle `implementation project(':aidc-stub')`
+//       durch `implementation fileTree(dir: 'libs', include: ['*.aar'])`
+//       ersetzen (siehe auch Workflow honeywell-experimental.yml)
+// ─────────────────────────────────────────────────────────────
+
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.honeywell.aidc'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 26
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}

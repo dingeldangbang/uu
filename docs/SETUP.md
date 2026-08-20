@@ -131,7 +131,7 @@ Test:
 | `dl.google.com/android/repository` | Android-SDK-Cmdline-Tools, Build-Tools, Platforms |
 | `services.gradle.org` | Gradle-Wrapper-Distribution |
 | `repo.maven.apache.org`, `dl.google.com/dl/android/maven2` | Bibliotheks-AAR-Dependencies |
-| `artifacts.honeywell.com` (optional) | Honeywell DataCollection SDK AAR |
+| Honeywell-AIDC-SDK | via Build-Zeit-Stub `:aidc-stub`; echtes AAR optional über Tech-Portal (`app/libs/`) |
 | `api.adoptium.net`, `get.sdkman.io` | JDK 17 |
 | `get.honeywell.com` portable AAR | Honeywell AAR-Download |
 

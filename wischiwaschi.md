@@ -37,7 +37,7 @@ make release     # signierte APK
 | 📡 GPS / GLONASS / Galileo | ✅ `FusedLocationProviderClient` LIVE | `play-services-location:21.0.1` |
 | 🔒 DSGVO-konform | ✅ Room + AES-Converter | `security-crypto:1.1.0-alpha06` |
 | 🔋 Batterie-Observation | ✅ ECHTER `ACTION_BATTERY_CHANGED`-Receiver | `DeviceBatteryProvider` |
-| 🔫 **Hardware-Barcode-Scanner (CT45P)** | ✅ Honeywell DataCollection SDK LIVE | `com.honeywell.aidc:aidc:3.0.0` |
+| 🔫 **Hardware-Barcode-Scanner (CT45P)** | ✅ Honeywell DataCollection SDK (Build-Zeit-Stub `:aidc-stub`, echtes AAR optional) | `app/libs/` + fileTree |
 | 📧 Temporäre E-Mail (provider-agnostisch) | ✅ 4 Provider (FreeCustom, Courier, MailAgent, Apify) | `mcp/EmailProvider` |
 | 🛰️ API-Node-Manager | ✅ 11 Knoten (WiGle, DHL, Mosquitto, …) | `agent/ApiNodeManager` |
 

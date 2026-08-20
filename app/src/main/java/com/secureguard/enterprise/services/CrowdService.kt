@@ -177,4 +177,22 @@ class CrowdService @Inject constructor(
             .maxByOrNull { it.accuracy }
             ?: SearchResult.notFound(DetectionSource.CROWD)
     }
+
+    /** Apple-Find-My-Lookup über das konfigurierte Crowd-Backend. */
+    private suspend fun searchViaAppleFindMy(asset: Asset): SearchResult {
+        val d = searchAsset(asset) ?: return SearchResult.notFound(DetectionSource.CROWD)
+        return SearchResult.success(
+            d, DetectionSource.CROWD, accuracy = 0.65f,
+            metadata = mapOf("via" to "apple-findmy")
+        )
+    }
+
+    /** Google-Find-My-Device-Lookup über das konfigurierte Crowd-Backend. */
+    private suspend fun searchViaGoogleFindMy(asset: Asset): SearchResult {
+        val d = searchAsset(asset) ?: return SearchResult.notFound(DetectionSource.CROWD)
+        return SearchResult.success(
+            d, DetectionSource.CROWD, accuracy = 0.60f,
+            metadata = mapOf("via" to "google-findmy")
+        )
+    }
 }

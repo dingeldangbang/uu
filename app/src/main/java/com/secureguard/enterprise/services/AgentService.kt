@@ -11,6 +11,8 @@ import androidx.work.WorkManager
 import androidx.work.isActive
 import com.secureguard.enterprise.data.model.AgentSettings
 import com.secureguard.enterprise.data.model.AgentStatus
+import com.secureguard.enterprise.data.model.DetectionSource
+import com.secureguard.enterprise.data.model.SearchResult
 import com.secureguard.enterprise.mcp.MCPClient
 import com.secureguard.enterprise.util.NotificationConstants
 import com.secureguard.enterprise.worker.SecureAgentWorker
@@ -18,11 +20,14 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,7 +48,14 @@ class AgentService @Inject constructor(
     private val bleService: BLEService,
     private val wifiService: WiFiService,
     private val satelliteService: SatelliteService,
-    private val meshService: MeshService
+    private val meshService: MeshService,
+    private val loraService: LoraService,
+    private val opticalService: OpticalService,
+    private val urbanService: UrbanService,
+    private val mqttService: MqttService,
+    private val webSocketService: WebSocketService,
+    private val crowdService: CrowdService,
+    private val telemetryService: TelemetryService
 ) {
     private val _agentStatus = MutableStateFlow(AgentStatus())
     val agentStatus: StateFlow<AgentStatus> = _agentStatus.asStateFlow()
@@ -222,27 +234,21 @@ class AgentService @Inject constructor(
      * Umfassende Suche über alle 11 aktiven Kanäle parallel.
      * Liefert das beste Ergebnis nach Accuracy gewichtet.
      */
-    suspend fun comprehensiveSearchAsset(asset: com.secureguard.enterprise.data.model.Asset): com.secureguard.enterprise.data.model.SearchResult {
+    suspend fun comprehensiveSearchAsset(asset: com.secureguard.enterprise.data.model.Asset): SearchResult {
         val started = System.currentTimeMillis()
-        return kotlinx.coroutines.supervisorScope {
+        return supervisorScope {
             val deferred = listOf(
-                kotlinx.coroutines.async { runCatching { telemetryService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { loraService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { satelliteService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { opticalService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { urbanService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { wifiService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { bleService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { meshService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { mqttService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async { runCatching { webSocketService.searchAsset(asset) }.getOrNull() },
-                kotlinx.coroutines.async {
-                    if (asset.externalAllowed) runCatching { crowdService.searchViaAppleFindMy(asset) }.getOrNull() ?: SearchResult.notFound(DetectionSource.CROWD)
-                    else SearchResult.error(
-                        DetectionSource.CROWD,
-                        "Externe Quellen nicht erlaubt"
-                    )
-                }
+                async { runCatching { telemetryService.searchAssetResult(asset) }.getOrNull() },
+                async { runCatching { loraService.searchAssetResult(asset) }.getOrNull() },
+                async { runCatching { satelliteService.searchAsset(asset) }.getOrNull() },
+                async { runCatching { opticalService.searchAssetResult(asset) }.getOrNull() },
+                async { runCatching { urbanService.searchAssetResult(asset) }.getOrNull() },
+                async { runCatching { wifiService.searchAsset(asset) }.getOrNull() },
+                async { runCatching { bleService.searchAsset(asset) }.getOrNull() },
+                async { runCatching { meshService.searchAsset(asset) }.getOrNull() },
+                async { runCatching { mqttService.searchAssetResult(asset) }.getOrNull() },
+                async { runCatching { webSocketService.searchAssetResult(asset) }.getOrNull() },
+                async { runCatching { crowdService.searchAssetResult(asset) }.getOrNull() }
             )
             awaitAll(*deferred.toTypedArray())
                 .filterIsInstance<SearchResult>()

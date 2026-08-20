@@ -3,11 +3,6 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-
-        // 🔃 Honeywell SDK Repo (CT45P-spezifisch). Falls nicht erreichbar,
-        // AAR manuell in app/libs/ legen und fileTree-Block in app/build.gradle nutzen.
-        // Bezug: https://honeywell.com/connect-honeywell  → DataCollection SDK
-        maven { url 'https://artifacts.honeywell.com/repository/aidc/' }
     }
 }
 dependencyResolutionManagement {
@@ -15,11 +10,10 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-
-        // 🔃 Honeywell SDK Repo (s.o.).  fileTree-Fallback siehe app/build.gradle.
-        maven { url 'https://artifacts.honeywell.com/repository/aidc/' }
     }
 }
 
 rootProject.name = "wischiwaschi"
 include ':app'
+// Build-Zeit-Stub für das Honeywell DataCollection SDK (siehe aidc-stub/README.md)
+include ':aidc-stub'
