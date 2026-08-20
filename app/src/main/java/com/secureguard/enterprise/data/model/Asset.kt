@@ -20,9 +20,12 @@ data class Asset(
     val lastSeen: Long? = null,
     val tags: List<String> = emptyList(),
     val owner: String = "",
-    val externalAllowed: Boolean = false,
-    @Ignore val encryptedNotes: ByteArray? = null
+    val externalAllowed: Boolean = false
 ) {
+    /** Verschlüsselte Notizen — bewusst NICHT persistiert (Room-@Ignore im Body). */
+    @Ignore
+    val encryptedNotes: ByteArray? = null
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Asset) return false

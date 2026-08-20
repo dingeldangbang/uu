@@ -63,8 +63,7 @@ class AddAssetViewModel @Inject constructor(
             lastSeen        = null,
             tags            = listOfNotNull(s.location.ifBlank { null }),
             owner           = "operator",
-            externalAllowed = false,
-            encryptedNotes  = null
+            externalAllowed = false
         )
         return runCatching {
             repo.upsertAsset(asset)
