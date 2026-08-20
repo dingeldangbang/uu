@@ -1,0 +1,70 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+*.jks
+*.keystore
+app/secureguard-keystore.jks
+keystore.b64
+*.log
+.kotlin/
+
+# ───────────────────────────────────────────────────────────────
+# Repo-Vorbereitung: nicht nachvollziehbare oder sensible Dateien
+# ───────────────────────────────────────────────────────────────
+
+# Gradle Wrapper Binaries (von CI regeneriert)
+# gradlew und gradlew.bat werden von GitHub Actions aus gradle/wrapper/* neu erzeugt
+gradlew
+gradlew.bat
+
+# Build outputs
+*.apk
+*.aab
+build/
+.gradle/
+
+# Secrets — niemals committen
+*.jks
+*.keystore
+secureguard-keystore.jks
+keystore.b64
+
+# Lokale Properties
+local.properties
+.env
+.env.local
+
+# IDE / Tooling
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Repo-Bereitschaft
+gradlew
+gradlew.bat
+*.jks
+*.keystore
+secureguard-keystore.jks
+keystore.b64
+local.properties
+.env
+.env.local
+.idea/
+*.iml
+.vscode/
+.DS_Store
+*.log
+logs/

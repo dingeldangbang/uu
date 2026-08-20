@@ -1,0 +1,11 @@
+# SecureGuard Enterprise — local.properties (template)
+# —————————————————————————————————————————————————
+# Wird per `make setup` erzeugt oder kopieren:
+#   cp local.properties.template local.properties
+
+# Pfad zu deinem Android SDK
+sdk.dir=/Users/du/Android/Sdk
+
+# Alternative: Das Toolchain-Plugin findet JAVA_HOME via JAVA_HOME-env.
+# Hier nur nötig, wenn lokal kein JAVA_HOME gesetzt.
+java.home=/opt/homebrew/opt/openjdk@17

@@ -1,0 +1,25 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+
+        // 🔃 Honeywell SDK Repo (CT45P-spezifisch). Falls nicht erreichbar,
+        // AAR manuell in app/libs/ legen und fileTree-Block in app/build.gradle nutzen.
+        // Bezug: https://honeywell.com/connect-honeywell  → DataCollection SDK
+        maven { url 'https://artifacts.honeywell.com/repository/aidc/' }
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+
+        // 🔃 Honeywell SDK Repo (s.o.).  fileTree-Fallback siehe app/build.gradle.
+        maven { url 'https://artifacts.honeywell.com/repository/aidc/' }
+    }
+}
+
+rootProject.name = "SecureGuard Enterprise"
+include ':app'

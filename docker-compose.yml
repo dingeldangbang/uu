@@ -1,0 +1,38 @@
+# Compose for a reproducible SecureGuard Enterprise Android build.
+#
+# Usage:
+#   docker compose build secureguard   # produces /dist/app-release.apk
+#   docker compose run  secureguard   # interactive
+#
+# Secrets (KEYSTORE_BASE64, etc.) flow in via env_file.
+
+services:
+  secureguard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CMDLINE_TOOLS_VERSION: "${CMDLINE_TOOLS_VERSION:-11076708}"
+    image: secureguard-build:latest
+    container_name: secureguard-build
+    working_dir: /src
+    volumes:
+      - .:/src
+      - android-sdk:/opt/android-sdk
+      - gradle-cache:/root/.gradle
+    environment:
+      ANDROID_HOME: /opt/android-sdk
+      ANDROID_SDK_ROOT: /opt/android-sdk
+      KEYSTORE_BASE64: "${KEYSTORE_BASE64:-}"
+      KEYSTORE_PASSWORD: "${KEYSTORE_PASSWORD:-}"
+      KEY_ALIAS: "${KEY_ALIAS:-}"
+      KEY_PASSWORD: "${KEY_PASSWORD:-}"
+    command: >
+      bash -c "./gradlew --no-daemon --console=plain assembleRelease &&
+               mkdir -p /dist &&
+               cp app/build/outputs/apk/release/*.apk /dist/ &&
+               ls -l /dist"
+
+volumes:
+  android-sdk:
+  gradle-cache:
