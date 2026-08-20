@@ -2,6 +2,7 @@ package com.secureguard.enterprise.services
 
 import android.util.Log
 import com.secureguard.enterprise.data.model.Asset
+import com.secureguard.enterprise.data.model.SearchResult
 import com.secureguard.enterprise.data.model.Detection
 import com.secureguard.enterprise.data.model.DetectionSource
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.Date
 
 /**
  * LoraService — LoRa/LoRaWAN-Kommunikation.
@@ -47,6 +49,12 @@ class LoraService @Inject constructor() {
         )
         _detections.tryEmit(detection)
         return detection
+    }
+
+    /** Suche (neues SearchResult-Interface — identisch zu searchAsset()). */
+    suspend fun searchAssetResult(asset: Asset): SearchResult {
+        val d = searchAsset(asset) ?: return SearchResult.notFound(DetectionSource.LORA)
+        return SearchResult.success(d, DetectionSource.LORA, accuracy = 0.70f, metadata = mapOf("mode" to "lora"))
     }
 
     companion object { private const val TAG = "LoraService" }

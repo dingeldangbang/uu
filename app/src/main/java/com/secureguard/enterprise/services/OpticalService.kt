@@ -17,6 +17,7 @@ import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import com.secureguard.enterprise.data.model.Asset
 import com.secureguard.enterprise.data.model.Detection
 import com.secureguard.enterprise.data.model.DetectionSource
+import com.secureguard.enterprise.data.model.SearchResult
 import com.secureguard.enterprise.data.repository.SecureGuardRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -158,6 +159,12 @@ class OpticalService @Inject constructor(
     }
 
     companion object {
+
+    suspend fun searchAssetResult(asset: Asset): SearchResult {
+        val d = searchAsset(asset) ?: return SearchResult.notFound(DetectionSource.OPTICAL)
+        return SearchResult.success(d, DetectionSource.OPTICAL, accuracy = 0.85f)
+    }
+
         private const val TAG = "OpticalService"
     }
 }

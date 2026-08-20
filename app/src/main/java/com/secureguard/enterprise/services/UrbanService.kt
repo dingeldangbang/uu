@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.secureguard.enterprise.data.model.Asset
 import com.secureguard.enterprise.data.model.Detection
 import com.secureguard.enterprise.data.model.DetectionSource
+import com.secureguard.enterprise.data.model.SearchResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -212,5 +213,11 @@ class UrbanService @Inject constructor(
 
     companion object {
         private const val TAG = "UrbanService"
+    }
+
+    /** Suche (neues SearchResult-Interface). */
+    suspend fun searchAssetResult(asset: Asset): SearchResult {
+        val d = searchAsset(asset) ?: return SearchResult.notFound(DetectionSource.URBAN)
+        return SearchResult.success(d, DetectionSource.URBAN, accuracy = 0.70f)
     }
 }

@@ -164,6 +164,15 @@ class TempMailService @Inject constructor() {
             }
         }
     }
+
+    /** Suche (neues SearchResult-Interface — erhält E-Mail-OTP-Schritte als Detection). */
+    suspend fun searchAssetResult(asset: Asset): SearchResult {
+        val d = searchAsset(asset) ?: return SearchResult.notFound(
+            DetectionSource.URBAN,
+            metadata = mapOf("reason" to "temp_mail_no_otp"))
+        return SearchResult.success(d, DetectionSource.URBAN, accuracy = 0.95f,
+            metadata = mapOf("transport" to "temp_mail"))
+    }
 }
 
 data class InboxResult(

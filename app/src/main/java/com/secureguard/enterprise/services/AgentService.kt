@@ -39,7 +39,11 @@ class AgentService @Inject constructor(
     @ApplicationContext private val ctx: Context,
     private val notificationService: NotificationService,
     private val tempMailService: TempMailService,
-    private val mcpClient: MCPClient
+    private val mcpClient: MCPClient,
+    private val bleService: BLEService,
+    private val wifiService: WiFiService,
+    private val satelliteService: SatelliteService,
+    private val meshService: MeshService
 ) {
     private val _agentStatus = MutableStateFlow(AgentStatus())
     val agentStatus: StateFlow<AgentStatus> = _agentStatus.asStateFlow()
@@ -214,6 +218,44 @@ class AgentService @Inject constructor(
     }
 
     /** Führt die tatsächliche Registrierung durch (HTTP/WebView — Stub für die Integration). */
+/**
+     * Umfassende Suche über alle 11 aktiven Kanäle parallel.
+     * Liefert das beste Ergebnis nach Accuracy gewichtet.
+     */
+    suspend fun comprehensiveSearchAsset(asset: com.secureguard.enterprise.data.model.Asset): com.secureguard.enterprise.data.model.SearchResult {
+        val started = System.currentTimeMillis()
+        return kotlinx.coroutines.supervisorScope {
+            val deferred = listOf(
+                kotlinx.coroutines.async { runCatching { telemetryService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { loraService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { satelliteService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { opticalService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { urbanService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { wifiService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { bleService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { meshService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { mqttService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async { runCatching { webSocketService.searchAsset(asset) }.getOrNull() },
+                kotlinx.coroutines.async {
+                    if (asset.externalAllowed) runCatching { crowdService.searchViaAppleFindMy(asset) }.getOrNull() ?: SearchResult.notFound(DetectionSource.CROWD)
+                    else SearchResult.error(
+                        DetectionSource.CROWD,
+                        "Externe Quellen nicht erlaubt"
+                    )
+                }
+            )
+            awaitAll(*deferred.toTypedArray())
+                .filterIsInstance<SearchResult>()
+                .filter { it.found }
+                .maxByOrNull { it.accuracy }
+                ?: SearchResult.error(
+                    DetectionSource.URBAN,
+                    "Kein Kanal lieferte ein positives Ergebnis",
+                    durationMs = System.currentTimeMillis() - started
+                )
+        }
+    }
+
     private suspend fun performRegistration(
         serviceName: String,
         url: String,

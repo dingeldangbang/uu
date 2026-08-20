@@ -101,4 +101,11 @@ class MqttService @Inject constructor(
     }
 
     companion object { private const val TAG = "MqttService" }
+
+    /** Suche (neues SearchResult-Interface). */
+    suspend fun searchAssetResult(asset: Asset): SearchResult {
+        val d = searchAsset(asset) ?: return SearchResult.notFound(DetectionSource.URBAN)
+        return SearchResult.success(d, DetectionSource.URBAN, accuracy = 0.80f,
+            metadata = mapOf("transport" to "mqtt"))
+    }
 }

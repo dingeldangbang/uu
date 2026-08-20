@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.secureguard.enterprise.data.model.Asset
 import com.secureguard.enterprise.data.model.Detection
 import com.secureguard.enterprise.data.model.DetectionSource
+import com.secureguard.enterprise.data.model.SearchResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -160,5 +161,20 @@ class CrowdService @Inject constructor(
 
     companion object {
         private const val TAG = "CrowdService"
+    }
+
+    /** Suche (neues SearchResult-Interface — versucht Apple+Google, gibt Bestes zurück). */
+    suspend fun searchAssetResult(asset: Asset): SearchResult {
+        if (!asset.externalAllowed) {
+            return SearchResult.error(
+                DetectionSource.CROWD, "Externe Quellen nicht erlaubt")
+        }
+        val results = listOfNotNull(
+            runCatching { searchViaAppleFindMy(asset) }.getOrNull(),
+            runCatching { searchViaGoogleFindMy(asset) }.getOrNull()
+        )
+        return results.filter { it.found }
+            .maxByOrNull { it.accuracy }
+            ?: SearchResult.notFound(DetectionSource.CROWD)
     }
 }
