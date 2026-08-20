@@ -68,3 +68,8 @@ local.properties
 .DS_Store
 *.log
 logs/
+
+# Propreitär-AAR-Verzeichnis (Honeywell AIDC SDK alternativ)
+# Wichtig: SDK-AARs NIEMALS committen — Lizenz + Größe + evtl. NDA
+app/libs/
+*.aar
