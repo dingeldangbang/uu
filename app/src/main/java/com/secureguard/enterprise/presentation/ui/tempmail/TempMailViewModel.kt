@@ -2,8 +2,8 @@ package com.secureguard.enterprise.presentation.ui.tempmail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.secureguard.enterprise.mcp.InboxResult
-import com.secureguard.enterprise.mcp.OTPResult
+import com.secureguard.enterprise.services.InboxResult
+import com.secureguard.enterprise.services.OTPResult
 import com.secureguard.enterprise.services.TempMailService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

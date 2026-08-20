@@ -158,13 +158,13 @@ class OpticalService @Inject constructor(
         )
     }
 
-    companion object {
-
+    /** Suche (neues SearchResult-Interface — wrappt [searchAsset]). */
     suspend fun searchAssetResult(asset: Asset): SearchResult {
         val d = searchAsset(asset) ?: return SearchResult.notFound(DetectionSource.OPTICAL)
         return SearchResult.success(d, DetectionSource.OPTICAL, accuracy = 0.85f)
     }
 
+    companion object {
         private const val TAG = "OpticalService"
     }
 }

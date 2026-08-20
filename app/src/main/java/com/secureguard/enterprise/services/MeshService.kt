@@ -63,7 +63,7 @@ class MeshService @Inject constructor(
                 )
             }
             val detection = Detection(
-                timestamp = Date(),
+                timestamp = System.currentTimeMillis(),
                 sourceType = DetectionSource.URBAN,
                 label = "mesh:${bestNode.id}",
                 rssi = bestNode.rssi,
