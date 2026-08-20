@@ -1,6 +1,8 @@
 package com.secureguard.enterprise.data.database
 
 import androidx.room.TypeConverter
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.secureguard.enterprise.data.model.AlertSeverity
 import com.secureguard.enterprise.data.model.AlertType
 import com.secureguard.enterprise.data.model.AssetCategory
@@ -58,4 +60,20 @@ class Converters {
     @TypeConverter
     fun toTagList(value: String?): List<String> =
         value?.takeIf { it.isNotEmpty() }?.split('|').orEmpty()
+
+    // ── Q-Table (Map<String, Float>) des selbstlernenden Agenten ──
+    private val gson = Gson()
+
+    @TypeConverter
+    fun fromQTable(value: Map<String, Float>?): String =
+        gson.toJson(value.orEmpty())
+
+    @TypeConverter
+    fun toQTable(value: String?): Map<String, Float> {
+        if (value.isNullOrBlank()) return emptyMap()
+        return runCatching {
+            val type = object : TypeToken<Map<String, Float>>() {}.type
+            gson.fromJson<Map<String, Float>>(value, type)
+        }.getOrDefault(emptyMap())
+    }
 }
