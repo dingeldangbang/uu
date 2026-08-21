@@ -38,8 +38,8 @@ GREEN, RED, YELL, OFF = "\033[1;32m", "\033[1;31m", "\033[1;33m", "\033[0m"
 
 fixes = []          # (datei, beschreibung, alt, neu)
 
-def fix(name, desc, old, new, all_occurrences=False):
-    fixes.append((name, desc, old, new, all_occurrences))
+def fix(name, desc, old, new, all_occurrences=False, check_target=None):
+    fixes.append((name, desc, old, new, all_occurrences, check_target))
 
 # ── 1/2/3 · ci.yml ──────────────────────────────────────────────────────────
 fix("ci.yml", "ungültiger Permissions-Scope `artifacts` (macht die Datei ungültig)",
@@ -131,7 +131,8 @@ fix("build-docker.yml", "Release-Upload ohne `contents: write` (Default-Token is
 
 permissions:
   contents: write                            # Release-Assets anhängen
-""")
+""",
+    check_target="permissions:\n  contents: write                            # Release-Assets anhängen\n")
 
 fix("build-docker.yml", "Artefakt-Name != README",
     "          name: wischiwaschi-pro.apk",
@@ -140,13 +141,35 @@ fix("build-docker.yml", "Artefakt-Name != README",
 # ── Anwenden ────────────────────────────────────────────────────────────────
 applied = pending = missing = 0
 by_file = {}
-for name, desc, old, new, all_occ in fixes:
+for name, desc, old, new, all_occ, check_target in fixes:
     p = wf / name
     if not p.exists():
         print(f"{YELL}  ? {name}: Datei fehlt — übersprungen ({desc}){OFF}")
         missing += 1
         continue
     s = by_file.get(name, p.read_text())
+    if check_target is not None:
+        # Defekt-Status am Zielzustand festmachen, nicht am Alt-Muster
+        # (das Alt-Muster kann Teilmenge des reparierten Zustands sein)
+        if check_target in s:
+            by_file.setdefault(name, s)
+            print(f"  · {name}: bereits ok — {desc}")
+            continue
+        if check_only:
+            print(f"{RED}  ✗ {name}: {desc}{OFF}")
+            pending += 1
+            by_file.setdefault(name, s)
+            continue
+        if old in s:
+            s = s.replace(old, new) if all_occ else s.replace(old, new, 1)
+            by_file[name] = s
+            print(f"{GREEN}  ✓ {name}: {desc}{OFF}")
+            applied += 1
+        else:
+            print(f"{YELL}  ! {name}: Zielzustand fehlt, Alt-Muster nicht gefunden — manuell prüfen ({desc}){OFF}")
+            pending += 1
+            by_file.setdefault(name, s)
+        continue
     if old in s:
         s = s.replace(old, new) if all_occ else s.replace(old, new, 1)
         by_file[name] = s

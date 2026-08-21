@@ -3,9 +3,9 @@
 Asset-Tracking & Sicherheits-App für Android 11+ (Zielgerät: Honeywell CT45P).
 84 Kotlin-Dateien, ~9.700 LOC — Compose-UI, Room, Hilt, WorkManager, BLE/WiFi/GNSS/LoRa/Mesh-Suche über **11 Kanäle** (`AgentService.comprehensiveSearchAsset`).
 
-![CI](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/ci.yml/badge.svg)
-![Release](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/build-release.yml/badge.svg)
-![CodeQL](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/codeql.yml/badge.svg)
+![CI](https://github.com/dingeldangbang/uu/actions/workflows/ci.yml/badge.svg)
+![Release](https://github.com/dingeldangbang/uu/actions/workflows/build-release.yml/badge.svg)
+![CodeQL](https://github.com/dingeldangbang/uu/actions/workflows/codeql.yml/badge.svg)
 
 ## 📦 Lokal bauen
 
