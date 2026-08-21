@@ -4,7 +4,7 @@
 #  Builds:    make debug / make release
 #  Aids:      make setup / make lint
 # =============================================================================
-.PHONY: setup bootstrap help debug release test lint clean install \
+.PHONY: setup bootstrap toolchain doctor fix-workflows help debug release test lint clean install \
         docker-build docker-run docker-push
 
 ENV_FILE := env.local
@@ -13,6 +13,9 @@ SDK_ROOT ?= $(ANDROID_HOME)
 help:
 	@echo "SecureGuard Enterprise — Befehle:"
 	@echo "  make setup         – Scripts + ENV vorbereiten"
+	@echo "  make toolchain     – JDK 17 + Android SDK 34 installieren (one-shot)"
+	@echo "  make doctor        – Toolchain + Netzzugang pruefen (kein Download)"
+	@echo "  make fix-workflows – GitHub-Actions-Workflows reparieren (docs/CI-REPARATUR.md)"
 	@echo "  make bootstrap     – Java 17 + Android SDK + Gradle-Wrapper"
 	@echo "  make debug         – APK debug (kein Signer)"
 	@echo "  make release       – APK release (signierte Variante)"
@@ -31,6 +34,16 @@ setup:
 	@echo "  ANDROID_HOME=$(SDK_ROOT)" >> .env-start
 	@echo "  PATH=\$$PATH:\$$ANDROID_HOME/platform-tools:\$$ANDROID_HOME/cmdline-tools/latest/bin" >> .env-start
 	@echo ".env-start guidable erstellt."
+
+toolchain:
+	@bash scripts/setup-toolchain.sh
+
+doctor:
+	@bash scripts/setup-toolchain.sh --check
+	@bash scripts/fix-workflows.sh --check || true
+
+fix-workflows:
+	@bash scripts/fix-workflows.sh
 
 bootstrap:
 	@bash scripts/bootstrap.sh

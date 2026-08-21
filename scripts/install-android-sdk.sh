@@ -9,7 +9,7 @@
 # Optionen:
 #   --with-ndk     zusätzlich NDK r26d installieren (falls natives C/C++ nötig)
 #
-# Quellinhalte werden nicht nur gegoogelt — wir nutzen offizielle Sums:
+# Empfehlung: für reproduzierbare Builds CMDLINE_TOOLS_SHA256=… setzen.
 
 set -euo pipefail
 
@@ -28,12 +28,8 @@ say() { printf '\033[1;34m[install-sdk]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[install-sdk FATAL]\033[0m %s\n' "$*" >&2; exit 1; }
 
 case "$(uname -s)" in
-  Linux)
-    PLATFORM="linux"
-    PLATFORM_TOOLS_SHA256="17d762e6d2dec41c84b48c33790942265d7ace5b8d309b14a6dcd9ce75daa5e7"
-    CMDLINE_TOOLS_SHA256="1d2a341e1f71d23b76c9d9b41d4c5c5a3e8b0e6dd7d9b65d5d80d1bb12345ab2"
-    ;;
-  Darwin) PLATFORM="mac";  CMDLINE_TOOLS_SHA256="a8f3c9d4be2b66e75c6c64f7c5d3ca2e1b3a8b6f4e3a2b1c0d9e8f7a6b5c4d3e2" ;;
+  Linux)  PLATFORM="linux" ;;
+  Darwin) PLATFORM="mac" ;;
   MINGW*|CYGWIN*|MSYS*) PLATFORM="windows" ;;
   *) fail "Nicht unterstützte Plattform: $(uname -s)" ;;
 esac
@@ -56,12 +52,17 @@ if ! curl -fsSL "$URL" -o "$ZIP_PATH"; then
   fail "Download fehlgeschlagen: $URL"
 fi
 
-# ── Optionale Integritätsprüfung (ignorieren, falls sha leer) ──
+# ── Integritätsprüfung ────────────────────────────────────
+# Nur prüfen, wenn ein Hash explizit vorgegeben wurde (CMDLINE_TOOLS_SHA256=…).
+# Vorher standen hier hartkodierte Fantasie-Hashes, die nie gepasst haben und
+# deren Mismatch nur weggeloggt wurde — das ist keine Prüfung, sondern Theater.
 if [[ -n "${CMDLINE_TOOLS_SHA256:-}" ]]; then
   ACTUAL="$(sha256sum "$ZIP_PATH" 2>/dev/null | awk '{print $1}')"
-  if [[ "$ACTUAL" != "$CMDLINE_TOOLS_SHA256" ]]; then
-    say "SHA256-Mismatch ($ACTUAL vs. erwartet). Überspringe Prüfung, weil Hash evtl. Build-abhängig ist."
-  fi
+  [[ "$ACTUAL" == "$CMDLINE_TOOLS_SHA256" ]] \
+    || fail "SHA256-Mismatch: $ACTUAL != $CMDLINE_TOOLS_SHA256"
+  say "SHA256 ✔"
+else
+  say "Kein CMDLINE_TOOLS_SHA256 gesetzt — Integritätsprüfung übersprungen (TLS-Vertrauen)."
 fi
 
 # ── Entpacken ─────────────────────────────────────────────

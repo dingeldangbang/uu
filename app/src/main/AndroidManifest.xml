@@ -5,13 +5,22 @@
     <!-- 📡 Location / GNSS (CT45P hat Qualcomm GPS) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!--
+        ACCESS_BACKGROUND_LOCATION wird bewusst NICHT deklariert: Tracking läuft
+        ausschließlich im Vordergrund (siehe MainActivity + BETRIEBSVEREINBARUNG §2).
+        Eine Deklaration ohne Runtime-Request wäre nur ein Play-Review-Blocker.
+    -->
 
     <!-- 📡 Bluetooth / BLE -->
     <uses-permission android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
+    <!--
+        Kein `usesPermissionFlags="neverForLocation"`: die App leitet aus BLE-/WLAN-
+        Scans bewusst Standortinformationen ab (Asset-Ortung über RSSI). Das Flag
+        wäre hier eine Falschaussage gegenüber Nutzer und Play-Review.
+    -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
         tools:targetApi="31" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"
@@ -34,14 +43,14 @@
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
         tools:targetApi="33" />
 
-    <!-- 🔔 Foreground services (API 34+ type-declaration) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- 🔔 Notifications (Alerts + Agent-Status)
+         FOREGROUND_SERVICE* ist NICHT deklariert: die App betreibt keinen
+         Foreground-Service; periodische Läufe erledigt WorkManager
+         (SecureAgentWorker, kein expedited work / kein setForeground). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- 🔋 Wake / Boot -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 🔋 Wake (WorkManager) — RECEIVE_BOOT_COMPLETED entfällt, es gibt keinen
+         BOOT_COMPLETED-Receiver; WorkManager re-scheduled selbst nach Reboot. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Honeywell-spezifisch (Bestandteil von CT45P-Betriebssystem-Image) -->

@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
-import android.os.Build
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -48,13 +47,24 @@ class SatelliteService @Inject constructor(
     private val fused: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(ctx)
 
+    /**
+     * Standortberechtigung vorhanden?
+     *
+     * FINE **oder** COARSE genügt: erteilt der Nutzer ab Android 12 nur
+     * „ungefährer Standort", liefert der FusedLocationProvider weiterhin
+     * Positionen (grober, aber besser als gar nichts).
+     */
     fun hasPermission(): Boolean = try {
-        ctx.checkSelfPermission(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                Manifest.permission.ACCESS_FINE_LOCATION
-            else
-                Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED ||
+        ctx.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+    } catch (_: Exception) { false }
+
+    /** Nur mit FINE liefert GNSS die volle Genauigkeit (für Priority-Wahl/Logs). */
+    fun hasFineLocation(): Boolean = try {
+        ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
     } catch (_: Exception) { false }
 
     @SuppressLint("MissingPermission")
@@ -79,7 +89,11 @@ class SatelliteService @Inject constructor(
                 suspendCancellableCoroutine<Location?> { cont ->
                     val cts = CancellationTokenSource()
                     cont.invokeOnCancellation { cts.cancel() }
-                    fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
+                    fused.getCurrentLocation(
+                        if (hasFineLocation()) Priority.PRIORITY_HIGH_ACCURACY
+                        else Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                        cts.token
+                    )
                         .addOnSuccessListener { cont.resume(it) }
                         .addOnCanceledListener { cont.resume(null) }
                         .addOnFailureListener { cont.resume(null) }

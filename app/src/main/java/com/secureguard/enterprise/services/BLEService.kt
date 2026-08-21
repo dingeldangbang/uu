@@ -47,6 +47,19 @@ class BLEService @Inject constructor(
         ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     private val adapter: BluetoothAdapter? = btManager?.adapter
 
+    /** Darf der Gerätename gelesen werden? (ab API 31 BLUETOOTH_CONNECT-pflichtig) */
+    private fun canReadDeviceName(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(
+                ctx, Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+        } else true
+
+    /** Gerätename defensiv lesen — ohne CONNECT wirft `device.name` SecurityException. */
+    private fun safeDeviceName(device: android.bluetooth.BluetoothDevice?): String? =
+        if (device == null || !canReadDeviceName()) null
+        else runCatching { device.name }.getOrNull()
+
     /** BLE-Permission vorhanden (Android 12+ eigene Scan-Permission). */
     fun hasPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -140,7 +153,7 @@ class BLEService @Inject constructor(
             val detection = Detection(
                 timestamp = System.currentTimeMillis(),
                 sourceType = DetectionSource.BLE,
-                label = scanRecord.deviceName ?: result.device?.name ?: "BLE:${foundMac}",
+                label = scanRecord.deviceName ?: safeDeviceName(result.device) ?: "BLE:${foundMac}",
             rssi = result.rssi,
             latitude = null,
             longitude = null,
@@ -157,7 +170,7 @@ class BLEService @Inject constructor(
             durationMs = System.currentTimeMillis() - started,
             metadata = mapOf(
                 "mac" to foundMac,
-                "name" to (result.device?.name ?: "?"),
+                "name" to (safeDeviceName(result.device) ?: "?"),
                 "rssi" to result.rssi
             )
         )

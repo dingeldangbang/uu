@@ -10,9 +10,25 @@ Asset-Tracking & Sicherheits-App für Android 11+ (Zielgerät: Honeywell CT45P).
 ## 📦 Lokal bauen
 
 ```bash
-# JDK 17 + Android SDK 34 (Build-Tools 34.0.0) vorausgesetzt
-./gradlew assembleDebug                                  # Debug-APK
+# Toolchain einmalig einrichten (JDK 17 + Android SDK 34 + local.properties):
+make toolchain          # bzw. bash scripts/setup-toolchain.sh
+source toolchain.env    # JAVA_HOME / ANDROID_HOME / PATH
 
+make doctor             # prüft Toolchain + Erreichbarkeit der Download-Quellen
+
+./gradlew assembleDebug                                  # Debug-APK
+```
+
+`make toolchain` lädt Temurin **JDK 17** (kein JRE — `javac` wird gebraucht) und die
+Android **cmdline-tools + platforms;android-34/26 + build-tools;34.0.0**, akzeptiert die
+Lizenzen und schreibt `sdk.dir` nach `local.properties`.
+
+> **Gesperrtes Netz?** Der Build braucht `dl.google.com`, `repo.maven.apache.org` und
+> `services.gradle.org`. Sind die geblockt (Sandbox/Corporate-Proxy), meldet das
+> `make doctor` sofort. Fallbacks: `make docker-build` (Dockerfile bringt die komplette
+> Toolchain mit) oder Pull Request öffnen → CI baut auf GitHub-Runnern.
+
+```bash
 # Release (signiert):
 KEYSTORE_PASSWORD=... KEY_ALIAS=secureguard KEY_PASSWORD=... \
 ./gradlew assembleRelease                                # → app/build/outputs/apk/release/
@@ -42,6 +58,19 @@ Workflow **„🚀 MinPro / Release — APK Sign & Publish"** (`build-release.ym
    Alternativ manuell: Actions → Release-Workflow → **Run workflow** → Branch: `v1.0.0`.
 
 3. **Ergebnis:** GitHub-Release `v1.0.0` mit Asset **`secureguard-pro-v1.0.0.apk`** (~5–8 min).
+
+## 🔧 CI reparieren (einmalig nötig)
+
+Die Workflows enthalten einen ungültigen Permissions-Scope (`artifacts: write`) und
+weitere Defekte — dadurch endet **jeder** Actions-Lauf sofort als `startup_failure`,
+die Badges oben sind entsprechend nichts wert. Fix:
+
+```bash
+bash scripts/fix-workflows.sh     # oder: git apply docs/ci-repair.patch
+git add .github/workflows && git commit -m "ci: Workflows reparieren" && git push
+```
+
+Details zu allen neun Defekten: [`docs/CI-REPARATUR.md`](docs/CI-REPARATUR.md).
 
 ## 🧪 CI-Checks
 

@@ -1,6 +1,5 @@
 package com.secureguard.enterprise.presentation
 
-import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -11,27 +10,34 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import android.util.Log
 import com.secureguard.enterprise.presentation.navigation.SecureGuardNavHost
 import com.secureguard.enterprise.presentation.theme.SecureGuardTheme
-import com.secureguard.enterprise.util.DeviceCompat
+import com.secureguard.enterprise.util.PermissionStatus
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * **Android 11+ Runtime-Permissions** werden hier einmalig beim ersten
- * Composition abgefragt — automatisch versionsabhängig:
+ * Composition abgefragt. Welche das sind, definiert zentral
+ * [PermissionStatus.startupPermissions]:
  *
- *  · Android 11 (CT45P, API 30):
- *      FINE/COARSE_LOCATION · CAMERA · READ_PHONE_STATE
- *      (WIFI_STATE/CHANGE_WIFI_STATE sind normal — auto-granted)
- *  · Android 12+ (API 31):   + BLUETOOTH_SCAN, BLUETOOTH_CONNECT
- *  · Android 13+ (API 33):   + POST_NOTIFICATIONS, NEARBY_WIFI_DEVICES,
- *                            READ_BASIC_PHONE_STATE statt READ_PHONE_STATE
+ *  · Alle Versionen:        FINE/COARSE_LOCATION
+ *  · Android 11/12 (CT45P): + READ_PHONE_STATE
+ *  · Android 12+ (API 31):  + BLUETOOTH_SCAN, BLUETOOTH_CONNECT
+ *  · Android 13+ (API 33):  + POST_NOTIFICATIONS, NEARBY_WIFI_DEVICES
  *
  * Was diese Activity **NICHT** tut:
- * - Es wird **kein** BETRIEBSVEREINBARUNG-Loading durchgeführt.
- * - Es gibt **keinen** Compliance-/Acceptance-Dialog.
- * - `ACCESS_BACKGROUND_LOCATION` wird bewusst NICHT abgefragt
+ * - Kein BETRIEBSVEREINBARUNG-Loading, kein Compliance-/Acceptance-Dialog.
+ * - `ACCESS_BACKGROUND_LOCATION` wird weder deklariert noch abgefragt
  *   (Datenschutz-minimal; Tracking läuft im Vordergrund).
+ * - `CAMERA` wird **nicht** vorab abgefragt, sondern kontextbezogen von
+ *   `OpticalScanScreen` / `QrScanScreen` (Permission-in-Context).
+ * - Normale Permissions (WIFI_STATE, CHANGE_WIFI_STATE, READ_BASIC_PHONE_STATE)
+ *   werden nicht angefragt — sie sind beim Install bereits gewährt.
+ *
+ * Abgelehnte Berechtigungen werden protokolliert; den dauerhaften Status
+ * zeigt das Panel „Berechtigungen" in den Settings.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -51,38 +57,28 @@ fun SecureGuardApp() {
     }
 }
 
+private const val TAG = "Permissions"
+
 @Composable
 private fun RequestRequiredPermissions() {
+    val ctx = LocalContext.current
+
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* Resultate werden nicht gerendert, TelemetryService prüft runtime erneut. */ }
+    ) { result ->
+        val denied = result.filterValues { !it }.keys
+        if (denied.isEmpty()) {
+            Log.i(TAG, "alle Start-Berechtigungen erteilt")
+        } else {
+            // Kein harter Abbruch: die Services prüfen zur Laufzeit erneut und
+            // liefern SearchResult.error(...). Settings zeigt den Status an.
+            Log.w(TAG, "abgelehnt: ${denied.joinToString { PermissionStatus.shortName(it) }}")
+        }
+    }
 
     LaunchedEffect(Unit) {
-        val perms = mutableListOf<String>()
-
-        // ── Alle Android-Versionen (inkl. Android 11 / CT45P) ──
-        perms += Manifest.permission.ACCESS_FINE_LOCATION
-        perms += Manifest.permission.ACCESS_COARSE_LOCATION
-        perms += Manifest.permission.CAMERA
-        perms += Manifest.permission.ACCESS_WIFI_STATE   // normal — wird sofort granted
-        perms += Manifest.permission.CHANGE_WIFI_STATE   // normal — wird sofort granted
-
-        // ── Android 13+ (API 33+) ──
-        if (DeviceCompat.isAndroid13Plus) {
-            perms += Manifest.permission.POST_NOTIFICATIONS
-            perms += Manifest.permission.NEARBY_WIFI_DEVICES
-            perms += Manifest.permission.READ_BASIC_PHONE_STATE
-        } else {
-            // ── Android 11/12 (CT45P): klassische Phone-State-Berechtigung ──
-            perms += Manifest.permission.READ_PHONE_STATE
-        }
-
-        // ── Android 12+ (API 31+): neues BLE-Modell ──
-        if (DeviceCompat.isAndroid12Plus) {
-            perms += Manifest.permission.BLUETOOTH_SCAN
-            perms += Manifest.permission.BLUETOOTH_CONNECT
-        }
-
-        launcher.launch(perms.distinct().toTypedArray())
+        val missing = PermissionStatus.startupPermissions()
+            .filterNot { PermissionStatus.isGranted(ctx, it) }
+        if (missing.isNotEmpty()) launcher.launch(missing.toTypedArray())
     }
 }

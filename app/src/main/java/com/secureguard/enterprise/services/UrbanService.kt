@@ -45,8 +45,9 @@ data class CellResult(
  * - `searchAsset(asset)` vergleicht Asset-MAC/RSSI mit der Umgebung
  *
  * Permissions (bereits im Manifest):
- *   ACCESS_WIFI_STATE, CHANGE_WIFI_STATE, READ_PHONE_STATE
- *   + Location (für WLAN-Scan ab Android 13)
+ *   ACCESS_WIFI_STATE, CHANGE_WIFI_STATE (normal, install-time)
+ *   + ACCESS_FINE/COARSE_LOCATION — Pflicht für WLAN-Scanergebnisse *und*
+ *     für `getAllCellInfo()`; ab API 33 alternativ NEARBY_WIFI_DEVICES fürs WLAN.
  */
 @Singleton
 class UrbanService @Inject constructor(
@@ -96,11 +97,22 @@ class UrbanService @Inject constructor(
         return lastWifiScan
     }
 
-    /** Liest Zell-Informationen mit RSSI (LTE/5G/GSM). */
+    /**
+     * Liest Zell-Informationen mit RSSI (LTE/5G/GSM).
+     *
+     * Gate ist bewusst **Location** und nicht Phone-State:
+     * `TelephonyManager.getAllCellInfo()` ist durch ACCESS_FINE/COARSE_LOCATION
+     * geschützt. `READ_BASIC_PHONE_STATE` (API 33+) ist eine *normale*
+     * Permission und würde faktisch nichts prüfen, `READ_PHONE_STATE` würde den
+     * Kanal ohne Not abschalten, wenn der Nutzer sie ablehnt.
+     */
     @SuppressLint("MissingPermission")
     fun scanCellTowers(): List<CellResult> {
         val tm = telephonyManager ?: return emptyList()
-        if (!hasPhonePermission()) return emptyList()
+        if (!hasLocationPermission()) {
+            Log.i(TAG, "Zell-Scan übersprungen: Standortberechtigung fehlt")
+            return emptyList()
+        }
 
         return try {
             val cells = tm.allCellInfo ?: emptyList()
@@ -197,13 +209,25 @@ class UrbanService @Inject constructor(
     private fun hasWifiPermission(): Boolean {
         val wifiState = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_WIFI_STATE) ==
                 PackageManager.PERMISSION_GRANTED
-        val location = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+        val nearby = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(ctx, Manifest.permission.NEARBY_WIFI_DEVICES) ==
                 PackageManager.PERMISSION_GRANTED
-        return wifiState && location
+        return wifiState && (hasLocationPermission() || nearby)
     }
 
+    /** FINE **oder** COARSE — beides erlaubt WLAN-/Zell-Scans. */
+    private fun hasLocationPermission(): Boolean =
+        ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED ||
+        ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Phone-State (nur noch für Netz-Metadaten/Diagnose relevant, **nicht**
+     * für `getAllCellInfo()`). Ab API 33 ist READ_BASIC_PHONE_STATE normal
+     * und damit immer erteilt.
+     */
+    @Suppress("unused")
     private fun hasPhonePermission(): Boolean {
         val perm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             Manifest.permission.READ_BASIC_PHONE_STATE
