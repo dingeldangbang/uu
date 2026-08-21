@@ -1,0 +1,556 @@
+diff --git a/.github/workflows/badge.yml b/.github/workflows/badge.yml
+index 8488186..985dcf6 100644
+--- a/.github/workflows/badge.yml
++++ b/.github/workflows/badge.yml
+@@ -16,15 +16,11 @@ jobs:
+     steps:
+       - name: Echo
+         run: |
+-          echo "Badge-Konfiguration im README aktualisiert?"
++          echo "Badge-URLs (für README.md):"
+           cat <<EOF
+-          ## ✅ Bereit-zu-posten Badges (URL):
+-
+-          ![Build](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/ci.yml/badge.svg)
+-          ![MinPro](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/build-release.yml/badge.svg)
+-          ![CodeQL](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/codeql.yml/badge.svg)
+-          ![Docker](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/build-docker.yml/badge.svg)
+-          ![Dependencies](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/dependency-review.yml/badge.svg)
+-
+-          ## LICENSE-Datei: war auf default branch — geprüft.
++          ![CI](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/ci.yml/badge.svg)
++          ![Release](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/build-release.yml/badge.svg)
++          ![CodeQL](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/codeql.yml/badge.svg)
++          ![Docker](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/build-docker.yml/badge.svg)
++          ![Dependencies](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/dependency-review.yml/badge.svg)
+           EOF
+diff --git a/.github/workflows/build-docker.yml b/.github/workflows/build-docker.yml
+index 01bd4ab..3ff9ee2 100644
+--- a/.github/workflows/build-docker.yml
++++ b/.github/workflows/build-docker.yml
+@@ -32,7 +32,7 @@ jobs:
+       - name: Upload APK
+         uses: actions/upload-artifact@v4
+         with:
+-          name: wischiwaschi-pro.apk
++          name: secureguard-pro.apk
+           path: dist/*.apk
+           retention-days: 30
+ 
+@@ -47,7 +47,7 @@ jobs:
+             Diese Variante wurde via Docker-Compose reproduzierbar gebaut.
+ 
+             ### 📦 Download
+-            - **APK**: wischiwaschi-pro.apk
++            - **APK**: secureguard-pro.apk
+           files: |
+             dist/*.apk
+           draft: false
+diff --git a/.github/workflows/build-release.yml b/.github/workflows/build-release.yml
+index 783b54c..ab0dd45 100644
+--- a/.github/workflows/build-release.yml
++++ b/.github/workflows/build-release.yml
+@@ -27,9 +27,7 @@ concurrency:
+   cancel-in-progress: false                  # Release nicht abbrechen
+ 
+ permissions:
+-  contents: write                            # Tag + Release erstellen
+-  pages: write
+-  packages: read
++  contents: write                            # Release erstellen + APK anhängen
+ 
+ jobs:
+   build:
+@@ -51,6 +49,20 @@ jobs:
+         with:
+           gradle-version: 8.5
+ 
++      - name: Secrets prüfen
++        env:
++          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
++          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
++          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
++          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
++        run: |
++          if [ -z "$KEYSTORE_BASE64" ]; then
++            echo "::error::Secret KEYSTORE_BASE64 ist nicht gesetzt."
++            echo "::error::Bitte unter Repo → Settings → Secrets and variables → Actions"
++            echo "::error::folgende Secrets anlegen: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
++            exit 1
++          fi
++
+       - name: Decode Keystore
+         env:
+           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+@@ -63,7 +75,8 @@ jobs:
+           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+         run: |
+           chmod +x gradlew
+-          ./gradlew assembleRelease --no-daemon --stacktrace
++          set -o pipefail
++          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build-release.log
+ 
+       - name: Finde Release-APK
+         id: find-apk
+@@ -75,7 +88,7 @@ jobs:
+       - name: Upload APK als Artifact (Vor-Release-Check)
+         uses: actions/upload-artifact@v4
+         with:
+-          name: wischiwaschi-pro-${{ github.ref_name }}.apk
++          name: secureguard-pro-${{ github.ref_name }}.apk
+           path: ${{ steps.find-apk.outputs.apk_path }}
+           retention-days: 90
+ 
+@@ -88,7 +101,7 @@ jobs:
+       - name: Download APK
+         uses: actions/download-artifact@v4
+         with:
+-          name: wischiwaschi-pro-${{ github.ref_name }}.apk
++          name: secureguard-pro-${{ github.ref_name }}.apk
+           path: ./apk
+ 
+       - name: Build-Info sammeln
+@@ -135,11 +148,11 @@ jobs:
+             - 📧 Temporäre E-Mail / OTP-Registrierung (MCP + REST)
+ 
+             ### 📦 Downloads
+-            - **APK**: `wischiwaschi-pro-${{ github.ref_name }}.apk`
++            - **APK**: `secureguard-pro-${{ github.ref_name }}.apk`
+ 
+             ### 📋 Installation
+             ```
+-            adb install -r wischiwaschi-pro-${{ github.ref_name }}.apk
++            adb install -r secureguard-pro-${{ github.ref_name }}.apk
+             adb shell am start -n com.secureguard.enterprise/.presentation.MainActivity
+             ```
+ 
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 453e4b2..ec9905b 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -1,11 +1,14 @@
+ name: 🛡️ CI — Lint, Tests, Build
+ 
+ # ─────────────────────────────────────────────────────────────────────
+-#  CI-Pipeline: bei jedem Push + PR
+-#    1. Lint (Kotlin-Check)
+-#    2. Unit-Tests (Robolectric/Standard-JUnit)
+-#    3. Build Debug + Release APK
+-#    4. Tests: Android-11-konform (Permission-Run vor JUnit-Run)
++#  CI-Pipeline: bei jedem Push (main/develop) + PR + manuell
++#    1. Lint (Android Lint, Debug-Variante)
++#    2. Unit-Tests (aktuell keine Testquellen → läuft leer durch)
++#    3. Assemble: Debug-APK + Release-Check (R8 + Signing mit
++#       Wegwerf-Keystore — echte Signatur macht der Release-Workflow)
++#
++#  Bei Fehlern in PRs wird der Log-Schwanz als PR-Kommentar gepostet
++#  (Diagnose, ohne in die Runner-Logs wechseln zu müssen).
+ # ─────────────────────────────────────────────────────────────────────
+ 
+ on:
+@@ -13,22 +16,22 @@ on:
+     branches: [ main, develop ]
+   pull_request:
+     branches: [ main, develop ]
++  workflow_dispatch:
+ 
+ concurrency:
+   group: ci-${{ github.ref }}
+-  cancel-in-progress: true                 # Wenn ein neuer Commit kommt, alte Bau verwerfen
++  cancel-in-progress: true
+ 
+ permissions:
+-  contents: read                            # Checkout
+-  packages: read                           # Registries
+-  actions: read                            # Artifact-Actions
+-  artifacts: write                         # Artefakte hochladen
++  contents: read
++  actions: write            # Artifact-Upload (actions/upload-artifact@v4)
++  pull-requests: write      # Fehler-Logs als PR-Kommentare
+ 
+ jobs:
+   lint:
+     name: 〰️ Lint
+     runs-on: ubuntu-latest
+-    timeout-minutes: 15
++    timeout-minutes: 20
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+@@ -42,23 +45,40 @@ jobs:
+       - name: Setup Gradle (Caching)
+         uses: gradle/actions/setup-gradle@v3
+         with:
+-          gradle-version: 8.5
++          gradle-version: '8.5'
+ 
+-      - name: Run Kotlin lint
+-        run: chmod +x gradlew && ./gradlew lintDebug --no-daemon --stacktrace
++      - name: Run Android Lint
++        run: |
++          chmod +x gradlew
++          set -o pipefail
++          ./gradlew lintDebug --no-daemon --stacktrace 2>&1 | tee lint.log
+ 
+       - name: Upload Lint-Report
+-        if: failure()
++        if: always()
+         uses: actions/upload-artifact@v4
+         with:
+           name: lint-report
+           path: '**/build/reports/lint-results-*.html'
++          if-no-files-found: ignore
+           retention-days: 7
+ 
++      - name: 📝 Fehlerlog als PR-Kommentar
++        if: failure() && github.event_name == 'pull_request'
++        env:
++          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
++        run: |
++          {
++            echo "## ❌ CI — Lint fehlgeschlagen (Run ${{ github.run_id }})"
++            echo
++            echo '```'
++            tail -n 200 lint.log 2>/dev/null || echo '(kein Log vorhanden)'
++            echo '```'
++          } | gh pr comment "${{ github.event.pull_request.number }}" --body-file -
++
+   test:
+-    name: 🧪 Unit-Tests (Robolectric)
++    name: 🧪 Unit-Tests
+     runs-on: ubuntu-latest
+-    timeout-minutes: 20
++    timeout-minutes: 25
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+@@ -72,26 +92,41 @@ jobs:
+       - name: Setup Gradle (Caching)
+         uses: gradle/actions/setup-gradle@v3
+         with:
+-          gradle-version: 8.5
++          gradle-version: '8.5'
+ 
+       - name: Run Unit-Tests
+         run: |
+           chmod +x gradlew
+-          ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
++          set -o pipefail
++          ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace 2>&1 | tee test.log
+ 
+       - name: Upload Test-Report
+         if: always()
+         uses: actions/upload-artifact@v4
+         with:
+           name: test-report
+-          path: '**/build/reports/tests/testDebugUnitTest/**'
++          path: 'app/build/reports/tests/testDebugUnitTest/**'
++          if-no-files-found: ignore
+           retention-days: 7
+ 
++      - name: 📝 Fehlerlog als PR-Kommentar
++        if: failure() && github.event_name == 'pull_request'
++        env:
++          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
++        run: |
++          {
++            echo "## ❌ CI — Unit-Tests fehlgeschlagen (Run ${{ github.run_id }})"
++            echo
++            echo '```'
++            tail -n 200 test.log 2>/dev/null || echo '(kein Log vorhanden)'
++            echo '```'
++          } | gh pr comment "${{ github.event.pull_request.number }}" --body-file -
++
+   assemble:
+-    name: 📦 Assemble (Debug + Release)
++    name: 📦 Assemble (Debug + Release-Check)
+     runs-on: ubuntu-latest
+-    timeout-minutes: 30
+-    needs: [lint, test]                       # Lint + Tests müssen ok sein
++    timeout-minutes: 45
++    needs: [lint, test]
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+@@ -105,47 +140,57 @@ jobs:
+       - name: Setup Gradle (Caching)
+         uses: gradle/actions/setup-gradle@v3
+         with:
+-          gradle-version: 8.5
+-
+-      - name: Decode Keystore
+-        env:
+-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+-        run: echo "$KEYSTORE_BASE64" | base64 -d > app/secureguard-keystore.jks
++          gradle-version: '8.5'
+ 
+       - name: Build Debug-APK
+-        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
++        run: |
++          chmod +x gradlew
++          set -o pipefail
++          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee assemble-debug.log
+ 
+       - name: Upload Debug-APK
+         uses: actions/upload-artifact@v4
+         with:
+           name: secureguard-debug.apk
+           path: app/build/outputs/apk/debug/*.apk
++          if-no-files-found: error
+           retention-days: 14
+ 
+-      - name: Build Release-APK (signiert)
+-        env:
+-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+-
+-      - name: Locate APK
+-        id: find-apk
+-        run: echo "apk_path=$(ls app/build/outputs/apk/release/*.apk | head -1)" >> "$GITHUB_OUTPUT"
++      - name: Wegwerf-Keystore für Release-Check erzeugen
++        run: |
++          keytool -genkeypair -v \
++            -keystore app/secureguard-keystore.jks \
++            -storepass changeit -keypass changeit \
++            -alias secureguard -keyalg RSA -keysize 2048 -validity 3650 \
++            -dname "CN=CI Check, OU=CI, O=wischiwaschi, L=CI, ST=CI, C=DE"
+ 
+-      - name: Upload Release-APK
+-        uses: actions/upload-artifact@v4
+-        with:
+-          name: wischiwaschi-pro.apk
+-          path: ${{ steps.find-apk.outputs.apk_path }}
+-          retention-days: 60                    # Release deutlich länger verfügbar
++      - name: Build Release-APK (R8 + Signing-Check)
++        env:
++          KEYSTORE_PASSWORD: changeit
++          KEY_ALIAS: secureguard
++          KEY_PASSWORD: changeit
++        run: |
++          set -o pipefail
++          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee assemble-release.log
+ 
+-      - name: Build-Profil-Bericht
+-        if: always()
++      - name: Upload Release-APK (CI-Check-Build)
+         uses: actions/upload-artifact@v4
+         with:
+-          name: build-profile
+-          path: |
+-            **/build/reports/profile/**/profile.html
+-            **/build/outputs/apk/release/output-metadata.json
++          name: secureguard-pro.apk
++          path: app/build/outputs/apk/release/*.apk
++          if-no-files-found: error
+           retention-days: 14
++
++      - name: 📝 Fehlerlog als PR-Kommentar
++        if: failure() && github.event_name == 'pull_request'
++        env:
++          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
++        run: |
++          LOG=$(ls -t assemble-debug.log assemble-release.log 2>/dev/null | head -1 || true)
++          {
++            echo "## ❌ CI — Assemble fehlgeschlagen (Run ${{ github.run_id }})"
++            echo
++            echo '```'
++            tail -n 250 "$LOG" 2>/dev/null || echo '(kein Log vorhanden)'
++            echo '```'
++          } | gh pr comment "${{ github.event.pull_request.number }}" --body-file -
+diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
+index 7df95d8..9172706 100644
+--- a/.github/workflows/codeql.yml
++++ b/.github/workflows/codeql.yml
+@@ -1,9 +1,12 @@
+ name: 🔒 CodeQL — Static Security Analysis
+ 
+ # ─────────────────────────────────────────────────────────────────────
+-#  Security-Check: scannt Kotlin/Java-Code auf Schwachstellen
++#  Security-Check: scannt Kotlin/Java-Code auf Schwachstellen.
+ #  Läuft wöchentlich + bei jedem Push/PR.
+-#  Ergebnisse unter Security → Code scanning alerts
++#
++#  Hinweis: Kotlin-Analyse braucht einen echten Compile-Lauf (Build-Tracing).
++#  Daher wird hier das Android SDK installiert und :app:compileDebugKotlin
++#  zwischen init/analyze ausgeführt (kein Keystore nötig).
+ # ─────────────────────────────────────────────────────────────────────
+ 
+ on:
+@@ -20,23 +23,63 @@ concurrency:
+ 
+ permissions:
+   contents: read
+-  security-events: write                       # SARIF-Ergebnisse hochladen
++  security-events: write                     # SARIF-Ergebnisse hochladen
++  pull-requests: write                       # Fehler-Logs als PR-Kommentare
+ 
+ jobs:
+   analyze:
+     name: 🔒 CodeQL analyze (kotlin)
+     runs-on: ubuntu-latest
+-    timeout-minutes: 30
++    timeout-minutes: 45
+     steps:
+       - name: Checkout
+         uses: actions/checkout@v4
+ 
++      - name: Setup JDK 17
++        uses: actions/setup-java@v4
++        with:
++          distribution: temurin
++          java-version: '17'
++
++      - name: Android SDK installieren
++        run: |
++          set -euo pipefail
++          SDKDIR="$HOME/android-sdk"
++          mkdir -p "$SDKDIR/cmdline-tools"
++          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/ct.zip
++          unzip -q /tmp/ct.zip -d "$SDKDIR/cmdline-tools"
++          mv "$SDKDIR/cmdline-tools/cmdline-tools" "$SDKDIR/cmdline-tools/latest"
++          yes | "$SDKDIR/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
++          "$SDKDIR/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" > /dev/null
++
+       - name: Initialize CodeQL
+         uses: github/codeql-action/init@v3
+         with:
+           languages: kotlin
+           queries: security-extended,security-and-quality
+-          build-mode: none                       # Kotlin Projekt ohne separate Build-Phase
++          build-mode: manual
++
++      - name: Kotlin kompilieren (CodeQL-Tracing)
++        env:
++          ANDROID_HOME: $HOME/android-sdk
++          ANDROID_SDK_ROOT: $HOME/android-sdk
++        run: |
++          chmod +x gradlew
++          set -o pipefail
++          ./gradlew :app:compileDebugKotlin --no-daemon --stacktrace 2>&1 | tee codeql-build.log
++
++      - name: 📝 Fehlerlog als PR-Kommentar
++        if: failure() && github.event_name == 'pull_request'
++        env:
++          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
++        run: |
++          {
++            echo "## ❌ CodeQL — Build fehlgeschlagen (Run ${{ github.run_id }})"
++            echo
++            echo '```'
++            tail -n 250 codeql-build.log 2>/dev/null || echo '(kein Log vorhanden)'
++            echo '```'
++          } | gh pr comment "${{ github.event.pull_request.number }}" --body-file -
+ 
+       - name: Perform CodeQL Analysis
+         uses: github/codeql-action/analyze@v3
+diff --git a/.github/workflows/dependency-review.yml b/.github/workflows/dependency-review.yml
+index b1ec280..4d306b7 100644
+--- a/.github/workflows/dependency-review.yml
++++ b/.github/workflows/dependency-review.yml
+@@ -37,9 +37,13 @@ jobs:
+               app/src/main/AndroidManifest.xml | grep 'maxSdkVersion\|tools:targetApi' > /tmp/guard.txt || true
+           fi
+ 
+-      - name: Verify Honeywell AAR is in `fileTree`-fallback
++      - name: Verify Honeywell-Anbindung (Stub vs. echtes AAR)
+         run: |
+-          if grep -qE 'aidc:3\.0\.0' app/build.gradle; then
+-            echo "::warning::aidc:3.0.0 wird aus Maven geladen — falls offline,"
+-            echo "::warning::kommentiere die Zeile aus und nutze libs/ + fileTree."
++          if grep -q "project(':aidc-stub')" app/build.gradle; then
++            echo "ℹ️ Honeywell-SDK läuft über den Build-Zeit-Stub :aidc-stub"
++            echo "   (BarcodeReader.from() → null; echtes AAR siehe aidc-stub/README.md)"
++          elif grep -qE "fileTree\(.*'libs'" app/build.gradle; then
++            echo "✓ Echtes Honeywell-AAR via app/libs eingebunden"
++          else
++            echo "::warning::Keine Honeywell-Anbindung erkannt (weder Stub noch fileTree)"
+           fi
+diff --git a/.github/workflows/honeywell-experimental.yml b/.github/workflows/honeywell-experimental.yml
+index 550793a..765b51d 100644
+--- a/.github/workflows/honeywell-experimental.yml
++++ b/.github/workflows/honeywell-experimental.yml
+@@ -1,34 +1,46 @@
+-name: 🛡️ Honeywell DataCollection (experimental)
++name: 🛡️ Honeywell DataCollection (echtes AAR — experimentell)
+ 
+ # ─────────────────────────────────────────────────────────────────────
+-#  Disaghether sichijarsischer Workflow: build mit Honeywell AIDD SDK,
+-#  der blühen aus libs/ statt Maven geladen wird (offline-Fallback).
+-#  Normal-Modus: build-release.yml.
++#  Baut mit dem ECHTEN Honeywell-AIDC-AAR (aus Secret HONEYWELL_AAR_BASE64)
++#  statt mit dem Build-Zeit-Stub `:aidc-stub`.
++#
++#  Ablauf:
++#   1. AAR aus Base64-Secret nach app/libs/aidc.aar decodieren
++#   2. In app/build.gradle den Stub durch fileTree('libs') ersetzen
++#   3. Debug-Build → kompiliert der Code gegen das echte SDK?
++#
++#  Nur manuell (workflow_dispatch). Siehe auch aidc-stub/README.md.
+ # ─────────────────────────────────────────────────────────────────────
+ 
+ on:
+-  workflow_dispatch:                            # nur manuell aus dem UI
++  workflow_dispatch:
+ 
+ jobs:
+-  build-honeywell-libs:
+-    name: 🛡️ Hone-Build (local libs)
++  build-with-real-aar:
++    name: 🛡️ Honeywell-Build (echtes AAR)
+     runs-on: ubuntu-latest
+     timeout-minutes: 30
+     steps:
+       - uses: actions/checkout@v4
+ 
+-      - name: Decode Honeywell-AAR
++      - name: AAR aus Secret decodieren
+         env:
+           HONEYWELL_AAR_BASE64: ${{ secrets.HONEYWELL_AAR_BASE64 }}
+         run: |
+           if [ -z "$HONEYWELL_AAR_BASE64" ]; then
+-            echo "::warning::HONEYWELL_AAR_BASE64 nicht gesetzt — erstelle Stub-AAR"
+-            mkdir -p app/libs
+-            echo "MOCK" > app/libs/aidc.aar                  # Stub für Pipeline-Demo
+-          else
+-            mkdir -p app/libs
+-            echo "$HONEYWELL_AAR_BASE64" | base64 -d > app/libs/aidc.aar
++            echo "::error::Secret HONEYWELL_AAR_BASE64 fehlt."
++            echo "::error::AAR aus dem Honeywell Tech-Portal holen, base64-codieren und"
++            echo "::error::als Repo-Secret HONEYWELL_AAR_BASE64 ablegen."
++            exit 1
+           fi
++          mkdir -p app/libs
++          echo "$HONEYWELL_AAR_BASE64" | base64 -d > app/libs/aidc.aar
++          ls -la app/libs/
++
++      - name: Stub durch echtes AAR ersetzen
++        run: |
++          sed -i "s|implementation project(':aidc-stub')|implementation fileTree(dir: 'libs', include: ['*.aar'])|" app/build.gradle
++          grep -n "fileTree\|aidc-stub" app/build.gradle | head -5
+ 
+       - uses: actions/setup-java@v4
+         with:
+@@ -37,18 +49,9 @@ jobs:
+ 
+       - uses: gradle/actions/setup-gradle@v3
+         with:
+-          gradle-version: 8.5
++          gradle-version: '8.5'
+ 
+-      - name: Maven-Import deaktivieren + fileTree aktivieren
+-        run: |
+-          sed -i 's|implementation '"'"'com.honeywell.aidc:aidc:3.0.0'"'"'|// local-libs builds|' app/build.gradle
+-          sed -i 's|^[[:space:]]*// implementation fileTree(include:|implementation fileTree(include:|' app/build.gradle
+-
+-      - name: Build (libs-Fallback)
++      - name: Build (Debug) mit echtem AAR
+         run: |
+           chmod +x gradlew
+-          ./gradlew assembleRelease --no-daemon --stacktrace || true
+-
+-      - name: Restore Build.gradle
+-        if: always()
+-        run: git checkout app/build.gradle
++          ./gradlew assembleDebug --no-daemon --stacktrace

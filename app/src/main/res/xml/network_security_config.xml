@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Config — SecureGuard Enterprise (Pilot)
+
+  Standard: HTTPS-only für öffentliche Dienste (CrowdService, API-Nodes).
+  Zusätzlich wird Cleartext für LOKALE Pilot-Infrastruktur erlaubt:
+    · localhost / 127.0.0.1 (Dev-Server, MQTT-Broker auf dem Gerät)
+    · 10.0.0.0/8, 192.168.0.0/16 (Meshtastic-IP-Tunnel, LAN-MQTT/API)
+
+  Damit funktioniert z.B. ein privater Mosquitto-Broker unter
+  "tcp://10.115.x.x:1883" oder ein lokaler API-Server über http://
+  ohne dass die App crasht (Android 11 blockt Cleartext ab targetSdk 28+).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+    <!-- Private Netzbereiche für Pilot-LAN / Meshtastic-IP-Tunnel -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.0.0</domain>
+        <domain includeSubdomains="true">192.168.0.0</domain>
+        <domain includeSubdomains="true">192.168.1.0</domain>
+    </domain-config>
+</network-security-config>

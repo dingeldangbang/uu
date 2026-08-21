@@ -1,0 +1,19 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "wischiwaschi"
+include ':app'
+// Build-Zeit-Stub für das Honeywell DataCollection SDK (siehe aidc-stub/README.md)
+include ':aidc-stub'

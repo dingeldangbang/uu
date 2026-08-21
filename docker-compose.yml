@@ -1,0 +1,57 @@
+# Compose für einen reproduzierbaren wischiwaschi-Android-Build.
+#
+# Usage:
+#   docker compose build secureguard         # Toolchain-Image bauen (JDK17+SDK34)
+#   docker compose run --rm secureguard      # APK bauen → ./dist/
+#
+# Secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD)
+# fließen als Umgebungsvariablen ein (aus der Shell bzw. CI-Umgebung).
+
+services:
+  secureguard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CMDLINE_TOOLS_VERSION: "${CMDLINE_TOOLS_VERSION:-11076708}"
+    image: wischiwaschi-build:latest
+    container_name: wischiwaschi-build
+    working_dir: /src
+    volumes:
+      - .:/src
+      - ./dist:/dist
+      - gradle-cache:/root/.gradle
+    environment:
+      ANDROID_HOME: /opt/android-sdk
+      ANDROID_SDK_ROOT: /opt/android-sdk
+      KEYSTORE_BASE64: "${KEYSTORE_BASE64:-}"
+      KEYSTORE_PASSWORD: "${KEYSTORE_PASSWORD:-}"
+      KEY_ALIAS: "${KEY_ALIAS:-}"
+      KEY_PASSWORD: "${KEY_PASSWORD:-}"
+    command: >
+      bash -c "set -uo pipefail;
+               echo '::notice::CONTAINER-START';
+               if [ -n \"$${KEYSTORE_BASE64:-}\" ]; then
+                 echo \"$$KEYSTORE_BASE64\" | base64 -d > app/secureguard-keystore.jks;
+               else
+                 echo 'Hinweis: KEYSTORE_BASE64 nicht gesetzt — unsigned Check-Build.';
+               fi;
+               echo '::notice::GRADLE-START';
+               ./gradlew --no-daemon --console=plain assembleRelease > /tmp/build.log 2>&1;
+               rc=$$?;
+               if [ $$rc -eq 0 ]; then
+                 mkdir -p /dist;
+                 cp app/build/outputs/apk/release/*.apk /dist/;
+                 ls -l /dist;
+                 echo '::notice::GRADLE-OK';
+               else
+                 echo '::error::GRADLE-FAILED exit='$$rc;
+                 ERR=\$(grep -E '^e: |error: ' /tmp/build.log | tail -n 40);
+                 if [ -z \"$${ERR}\" ]; then ERR=\$(grep -A 80 'What went wrong' /tmp/build.log | head -n 60); fi;
+                 if [ -z \"$${ERR}\" ]; then ERR=\$(tail -n 40 /tmp/build.log); fi;
+                 echo \"$${ERR}\" | tr '\n' '|' | fold -w 1500 | sed 's/^/::error::GRADLE: /';
+               fi;
+               exit $$rc"
+
+volumes:
+  gradle-cache:

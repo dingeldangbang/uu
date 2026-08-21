@@ -1,0 +1,43 @@
+# ── Gradle ────────────────────────────────────────────────
+.gradle
+build/
+**/build/
+.kotlin/
+out/
+*.iml
+
+# ── Android / lokale Konfiguration ─────────────────────────
+/local.properties
+local.properties
+*.log
+captures/
+.externalNativeBuild
+.cxx
+
+# ── Toolchain (scripts/setup-toolchain.sh) ─────────────────
+toolchain.env
+.env-start
+
+# ── Secrets — niemals committen ───────────────────────────
+*.jks
+*.keystore
+app/secureguard-keystore.jks
+keystore.b64
+.env
+.env.local
+
+# ── Build-Artefakte ───────────────────────────────────────
+*.apk
+*.aab
+
+# ── Proprietäre AARs (z. B. Honeywell DataCollection SDK) ──
+# SDK-AARs NIEMALS committen — Lizenz + Größe + evtl. NDA.
+# Bauen tun wir gegen :aidc-stub (siehe aidc-stub/README.md).
+app/libs/
+*.aar
+
+# ── IDE / Tooling ─────────────────────────────────────────
+.idea/
+.vscode/
+.DS_Store
+node_modules/

@@ -1,0 +1,627 @@
+From 0c341896f6195287336d3f89645822e92eb4667b Mon Sep 17 00:00:00 2001
+From: dang88bang-pixel <314025649+dang88bang-pixel@users.noreply.github.com>
+Date: Fri, 21 Aug 2026 07:30:48 +0000
+Subject: [PATCH] =?UTF-8?q?ci:=20GitHub-Actions-Workflows=20hinzuf=C3=BCge?=
+ =?UTF-8?q?n=20(bereits=20repariert)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Die Workflows aus wischiwaschi-public — hier direkt im reparierten Zustand
+(Details: docs/CI-REPARATUR.md, Prüfung: bash scripts/fix-workflows.sh --check):
+  1  ci.yml            ungültiger Permissions-Scope 'artifacts' entfernt
+  2  ci.yml            Keystore-Decode nur bei gesetztem Secret
+  3  ci.yml            Release-Artefakt-Name = README
+  4  build-release.yml Glob expandiert jetzt, APK wird umbenannt + geprüft
+  5  build-release.yml fehlendes $ in ${{ github.repository }} ergänzt
+  6  build-release.yml Upload-/Download-/Asset-Name einheitlich secureguard-pro-<tag>.apk
+  7  build-release.yml unnötiger pages:write-Scope entfernt
+  8  codeql.yml        languages: kotlin → java-kotlin
+  9  badge.yml         Badge-URLs zeigen auf dingeldangbang/uu
+ 10  build-docker.yml  permissions: contents: write für Release-Upload
+---
+ .github/workflows/badge.yml                  |  30 ++++
+ .github/workflows/build-docker.yml           |  58 +++++++
+ .github/workflows/build-release.yml          | 157 +++++++++++++++++++
+ .github/workflows/ci.yml                     | 156 ++++++++++++++++++
+ .github/workflows/codeql.yml                 |  44 ++++++
+ .github/workflows/dependency-review.yml      |  45 ++++++
+ .github/workflows/honeywell-experimental.yml |  54 +++++++
+ 7 files changed, 544 insertions(+)
+ create mode 100644 .github/workflows/badge.yml
+ create mode 100644 .github/workflows/build-docker.yml
+ create mode 100644 .github/workflows/build-release.yml
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 .github/workflows/codeql.yml
+ create mode 100644 .github/workflows/dependency-review.yml
+ create mode 100644 .github/workflows/honeywell-experimental.yml
+
+diff --git a/.github/workflows/badge.yml b/.github/workflows/badge.yml
+new file mode 100644
+index 0000000..26aaf62
+--- /dev/null
++++ b/.github/workflows/badge.yml
+@@ -0,0 +1,30 @@
++name: 🏷️ Badges
++
++# ─────────────────────────────────────────────────────────────────────
++#  Kein Build-Job — veröffentlicht Status-Badges für README
++# ─────────────────────────────────────────────────────────────────────
++
++on:
++  workflow_dispatch:
++  schedule:
++    - cron: '0 0 * * *'                         # Täglich — keine echte Wirkung
++
++jobs:
++  badge:
++    name: 📋 Badge Cache
++    runs-on: ubuntu-latest
++    steps:
++      - name: Echo
++        run: |
++          echo "Badge-Konfiguration im README aktualisiert?"
++          cat <<EOF
++          ## ✅ Bereit-zu-posten Badges (URL):
++
++          ![Build](https://github.com/dingeldangbang/uu/actions/workflows/ci.yml/badge.svg)
++          ![MinPro](https://github.com/dingeldangbang/uu/actions/workflows/build-release.yml/badge.svg)
++          ![CodeQL](https://github.com/dingeldangbang/uu/actions/workflows/codeql.yml/badge.svg)
++          ![Docker](https://github.com/dingeldangbang/uu/actions/workflows/build-docker.yml/badge.svg)
++          ![Dependencies](https://github.com/dingeldangbang/uu/actions/workflows/dependency-review.yml/badge.svg)
++
++          ## LICENSE-Datei: war auf default branch — geprüft.
++          EOF
+diff --git a/.github/workflows/build-docker.yml b/.github/workflows/build-docker.yml
+new file mode 100644
+index 0000000..2b05354
+--- /dev/null
++++ b/.github/workflows/build-docker.yml
+@@ -0,0 +1,58 @@
++name: 🐳 Build via Docker Compose
++
++on:
++  workflow_dispatch:
++  push:
++    branches: [ main, develop ]
++    tags: [ 'v*' ]
++
++permissions:
++  contents: write                            # Release-Assets anhängen
++
++jobs:
++  docker-build:
++    runs-on: ubuntu-latest
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup Docker Buildx
++        uses: docker/setup-buildx-action@v3
++
++      - name: Set up QEMU
++        uses: docker/setup-qemu-action@v3
++
++      - name: Build APK via docker compose
++        env:
++          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
++          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
++          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
++          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
++        run: |
++          docker compose build secureguard
++          docker compose run --rm --no-deps secureguard
++
++      - name: Upload APK
++        uses: actions/upload-artifact@v4
++        with:
++          name: secureguard-pro.apk
++          path: dist/*.apk
++          retention-days: 30
++
++      - name: Attach to Release
++        if: startsWith(github.ref, 'refs/tags/v')
++        uses: softprops/action-gh-release@v2
++        with:
++          name: "🛡️ wischiwaschi Pro (Docker Build) ${{ github.ref_name }}"
++          body: |
++            ## 🛡️ wischiwaschi (Docker-Build)
++
++            Diese Variante wurde via Docker-Compose reproduzierbar gebaut.
++
++            ### 📦 Download
++            - **APK**: secureguard-pro.apk
++          files: |
++            dist/*.apk
++          draft: false
++          prerelease: false
++          generate_release_notes: true
+diff --git a/.github/workflows/build-release.yml b/.github/workflows/build-release.yml
+new file mode 100644
+index 0000000..7949bae
+--- /dev/null
++++ b/.github/workflows/build-release.yml
+@@ -0,0 +1,157 @@
++name: 🚀 MinPro / Release — APK Sign & Publish
++
++# ─────────────────────────────────────────────────────────────────────
++#  Release-Pipeline: bei Tag-Push (v*)
++#    1. Signierte Release-APK bauen
++#    2. GitHub-Release erstellen + APK anhängen
++#    3. Stabile Release-Notes werden via softprops/auto-generiert
++#
++#  Voraussetzung: 4 Secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
++#                 `KEY_ALIAS`, `KEY_PASSWORD` müssen gesetzt sein
++#  (siehe README § GitHub Secrets)
++# ─────────────────────────────────────────────────────────────────────
++
++on:
++  push:
++    tags: [ 'v*' ]                            # v1.0.0, v1.2.3-rc1, ...
++  workflow_dispatch:                          # Manuelle Releases über das UI
++    inputs:
++      pre_release:
++        description: "Pre-Release markieren (optional)"
++        required: false
++        type: boolean
++        default: false
++
++concurrency:
++  group: release-${{ github.ref }}
++  cancel-in-progress: false                  # Release nicht abbrechen
++
++permissions:
++  contents: write                            # Tag + Release erstellen
++  packages: read
++
++jobs:
++  build:
++    name: 📦 Build + Sign
++    runs-on: ubuntu-latest
++    timeout-minutes: 30
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup JDK 17
++        uses: actions/setup-java@v4
++        with:
++          distribution: temurin
++          java-version: '17'
++
++      - name: Setup Gradle (Caching)
++        uses: gradle/actions/setup-gradle@v3
++        with:
++          gradle-version: 8.5
++
++      - name: Decode Keystore
++        env:
++          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
++        run: echo "$KEYSTORE_BASE64" | base64 -d > app/secureguard-keystore.jks
++
++      - name: Build signed APK
++        env:
++          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
++          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
++          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
++        run: |
++          chmod +x gradlew
++          ./gradlew assembleRelease --no-daemon --stacktrace
++
++      - name: Finde Release-APK
++        id: find-apk
++        run: |
++          APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
++          if [ -z "$APK" ]; then
++            echo "::error::Keine Release-APK unter app/build/outputs/apk/release/"
++            exit 1
++          fi
++          TARGET="app/build/outputs/apk/release/secureguard-pro-${GITHUB_REF_NAME}.apk"
++          [ "$APK" = "$TARGET" ] || mv "$APK" "$TARGET"
++          echo "apk_path=$TARGET" >> "$GITHUB_OUTPUT"
++          echo "apk_name=$(basename "$TARGET")" >> "$GITHUB_OUTPUT"
++
++      - name: Upload APK als Artifact (Vor-Release-Check)
++        uses: actions/upload-artifact@v4
++        with:
++          name: secureguard-pro-${{ github.ref_name }}.apk
++          path: ${{ steps.find-apk.outputs.apk_path }}
++          retention-days: 90
++
++  publish-release:
++    name: 📤 GitHub Release
++    runs-on: ubuntu-latest
++    timeout-minutes: 10
++    needs: build
++    steps:
++      - name: Download APK
++        uses: actions/download-artifact@v4
++        with:
++          name: secureguard-pro-${{ github.ref_name }}.apk
++          path: ./apk
++
++      - name: Build-Info sammeln
++        id: build-info
++        run: |
++          APK=$(ls ./apk/*.apk | head -1)
++          SIZE=$(stat -c%s "$APK")
++          SHA=$(sha256sum "$APK" | cut -d' ' -f1)
++          echo "apk_size=$SIZE" >> "$GITHUB_OUTPUT"
++          echo "apk_sha256=$SHA" >> "$GITHUB_OUTPUT"
++          echo "✓ APK: $APK ($SIZE bytes) sha256=$SHA"
++
++      - name: Build-Info als Artifact sichern (audit)
++        uses: actions/upload-artifact@v4
++        with:
++          name: build-info
++          path: build-info.json
++        if: false                                 # wir embedded unten in Release-Body
++
++      - name: GitHub Release erstellen
++        uses: softprops/action-gh-release@v2
++        with:
++          name: "🛡️ wischiwaschi Pro ${{ github.ref_name }}"
++          body: |
++            ## 🛡️ wischiwaschi — ${{ github.ref_name }}
++
++            **Build:**   ${{ github.workflow }} · ${{ github.run_id }}  
++            **Commit:**  ${{ github.sha }}  
++            **Datum:**   ${{ github.event.repository.updated_at }}  
++            **Größe:**   ${{ steps.build-info.outputs.apk_size }} bytes  
++            **SHA-256:** `${{ steps.build-info.outputs.apk_sha256 }}`
++
++            ### ✅ Funktionen
++            - 📡 LoRa/LoRaWAN (`LoraService` – Stub, Hardware-Bridge nachrüstbar)
++            - 🧠 Selbstlernender Agent (`SecureAgentWorker` mit ε-greedy Q-Learning)
++            - 🗺️ OpenStreetMap-Karte (`osmdroid` + Marker-Drawables)
++            - 🎮 Fernsteuerung (8 Aktionen: ALARM / LIGHT / MOTOR_OFF / BATTERY / MESSAGE / POSITION / RESTART / TELEMETRY)
++            - 👁️ Optische Erkennung (`CameraX` + `ML Kit ObjectDetector` live)
++            - 🌍 Apple/Google-Crowdsourcing (Retrofit REST-Client, `externalAllowed`-Gate)
++            - 🏙️ Urbane Infrastruktur (`WifiManager` + `TelephonyManager`)
++            - 📡 GPS / GLONASS / Galileo (`FusedLocationProviderClient`, Multi-Konstellation)
++            - 🗺️ API-Node-Manager (11 Knoten: WiGle, DHL, Mosquitto, …)
++            - 🔐 Honeywell-Datacollection SDK (CT45P-Scanner, Lifecycle-bound)
++            - 📧 Temporäre E-Mail / OTP-Registrierung (MCP + REST)
++
++            ### 📦 Downloads
++            - **APK**: `secureguard-pro-${{ github.ref_name }}.apk`
++
++            ### 📋 Installation
++            ```
++            adb install -r secureguard-pro-${{ github.ref_name }}.apk
++            adb shell am start -n com.secureguard.enterprise/.presentation.MainActivity
++            ```
++
++            ### 🐛 Bug-Reports
++            Bitte via GitHub Issues in `${{ github.repository }}`.
++          files: |
++            ./apk/*.apk
++          draft: false
++          prerelease: ${{ github.event.inputs.pre_release == 'true' }}
++          generate_release_notes: true
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..b50719a
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,156 @@
++name: 🛡️ CI — Lint, Tests, Build
++
++# ─────────────────────────────────────────────────────────────────────
++#  CI-Pipeline: bei jedem Push + PR
++#    1. Lint (Kotlin-Check)
++#    2. Unit-Tests (Robolectric/Standard-JUnit)
++#    3. Build Debug + Release APK
++#    4. Tests: Android-11-konform (Permission-Run vor JUnit-Run)
++# ─────────────────────────────────────────────────────────────────────
++
++on:
++  push:
++    branches: [ main, develop ]
++  pull_request:
++    branches: [ main, develop ]
++
++concurrency:
++  group: ci-${{ github.ref }}
++  cancel-in-progress: true                 # Wenn ein neuer Commit kommt, alte Bau verwerfen
++
++permissions:
++  contents: read                            # Checkout
++  packages: read                           # Registries
++  actions: read                            # Artifact-Actions
++
++jobs:
++  lint:
++    name: 〰️ Lint
++    runs-on: ubuntu-latest
++    timeout-minutes: 15
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup JDK 17
++        uses: actions/setup-java@v4
++        with:
++          distribution: temurin
++          java-version: '17'
++
++      - name: Setup Gradle (Caching)
++        uses: gradle/actions/setup-gradle@v3
++        with:
++          gradle-version: 8.5
++
++      - name: Run Kotlin lint
++        run: chmod +x gradlew && ./gradlew lintDebug --no-daemon --stacktrace
++
++      - name: Upload Lint-Report
++        if: failure()
++        uses: actions/upload-artifact@v4
++        with:
++          name: lint-report
++          path: '**/build/reports/lint-results-*.html'
++          retention-days: 7
++
++  test:
++    name: 🧪 Unit-Tests (Robolectric)
++    runs-on: ubuntu-latest
++    timeout-minutes: 20
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup JDK 17
++        uses: actions/setup-java@v4
++        with:
++          distribution: temurin
++          java-version: '17'
++
++      - name: Setup Gradle (Caching)
++        uses: gradle/actions/setup-gradle@v3
++        with:
++          gradle-version: 8.5
++
++      - name: Run Unit-Tests
++        run: |
++          chmod +x gradlew
++          ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
++
++      - name: Upload Test-Report
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: test-report
++          path: '**/build/reports/tests/testDebugUnitTest/**'
++          retention-days: 7
++
++  assemble:
++    name: 📦 Assemble (Debug + Release)
++    runs-on: ubuntu-latest
++    timeout-minutes: 30
++    needs: [lint, test]                       # Lint + Tests müssen ok sein
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup JDK 17
++        uses: actions/setup-java@v4
++        with:
++          distribution: temurin
++          java-version: '17'
++
++      - name: Setup Gradle (Caching)
++        uses: gradle/actions/setup-gradle@v3
++        with:
++          gradle-version: 8.5
++
++      - name: Decode Keystore
++        env:
++          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
++        run: |
++          if [ -n "$KEYSTORE_BASE64" ]; then
++            echo "$KEYSTORE_BASE64" | base64 -d > app/secureguard-keystore.jks
++            echo "Keystore dekodiert — Release wird signiert."
++          else
++            echo "::notice::Kein KEYSTORE_BASE64 — Release-Build bleibt unsigniert."
++          fi
++
++      - name: Build Debug-APK
++        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
++
++      - name: Upload Debug-APK
++        uses: actions/upload-artifact@v4
++        with:
++          name: secureguard-debug.apk
++          path: app/build/outputs/apk/debug/*.apk
++          retention-days: 14
++
++      - name: Build Release-APK (signiert)
++        env:
++          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
++          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
++          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
++        run: ./gradlew assembleRelease --no-daemon --stacktrace
++
++      - name: Locate APK
++        id: find-apk
++        run: echo "apk_path=$(ls app/build/outputs/apk/release/*.apk | head -1)" >> "$GITHUB_OUTPUT"
++
++      - name: Upload Release-APK
++        uses: actions/upload-artifact@v4
++        with:
++          name: secureguard-pro.apk
++          path: ${{ steps.find-apk.outputs.apk_path }}
++          retention-days: 60                    # Release deutlich länger verfügbar
++
++      - name: Build-Profil-Bericht
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: build-profile
++          path: |
++            **/build/reports/profile/**/profile.html
++            **/build/outputs/apk/release/output-metadata.json
++          retention-days: 14
+diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
+new file mode 100644
+index 0000000..424f91c
+--- /dev/null
++++ b/.github/workflows/codeql.yml
+@@ -0,0 +1,44 @@
++name: 🔒 CodeQL — Static Security Analysis
++
++# ─────────────────────────────────────────────────────────────────────
++#  Security-Check: scannt Kotlin/Java-Code auf Schwachstellen
++#  Läuft wöchentlich + bei jedem Push/PR.
++#  Ergebnisse unter Security → Code scanning alerts
++# ─────────────────────────────────────────────────────────────────────
++
++on:
++  push:
++    branches: [ main, develop ]
++  pull_request:
++    branches: [ main ]
++  schedule:
++    - cron: '17 6 * * 1'                      # Mo 06:17 UTC
++
++concurrency:
++  group: codeql-${{ github.ref }}
++  cancel-in-progress: true
++
++permissions:
++  contents: read
++  security-events: write                       # SARIF-Ergebnisse hochladen
++
++jobs:
++  analyze:
++    name: 🔒 CodeQL analyze (kotlin)
++    runs-on: ubuntu-latest
++    timeout-minutes: 30
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Initialize CodeQL
++        uses: github/codeql-action/init@v3
++        with:
++          languages: java-kotlin
++          queries: security-extended,security-and-quality
++          build-mode: none                       # Kotlin Projekt ohne separate Build-Phase
++
++      - name: Perform CodeQL Analysis
++        uses: github/codeql-action/analyze@v3
++        with:
++          category: "/language:kotlin"
+diff --git a/.github/workflows/dependency-review.yml b/.github/workflows/dependency-review.yml
+new file mode 100644
+index 0000000..b1ec280
+--- /dev/null
++++ b/.github/workflows/dependency-review.yml
+@@ -0,0 +1,45 @@
++name: 📦 Dependency Review — Android 11 Bereitschaft
++
++# ─────────────────────────────────────────────────────────────────────
++#  PR-only Workflow:
++#    - Schlägt fehl, wenn Android-12+-only Permissions im PR sind
++#    - Informativ bei Dependency-Öffnung zwischen Build-Datei-Änderungen
++# ─────────────────────────────────────────────────────────────────────
++
++on:
++  pull_request:
++    branches: [ main, develop ]
++
++permissions:
++  contents: read
++  pull-requests: read
++
++jobs:
++  check-permissions:
++    name: 🔍 Android-12+ Permissions Check
++    runs-on: ubuntu-latest
++    timeout-minutes: 10
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Set build-tools for checkout
++        uses: gradle/actions/setup-gradle@v3
++        with:
++          gradle-version: 8.5
++
++      - name: Check Android-12+ permissions
++        continue-on-error: true
++        run: |
++          if grep -qE 'android:name="(android\.permission\.BLUETOOTH_SCAN|android\.permission\.NEARBY_WIFI_DEVICES|android\.permission\.POST_NOTIFICATIONS)"' app/src/main/AndroidManifest.xml; then
++            echo "✓ Android-12+ Permissions gefunden (mit maxSdkVersion korrekt abgesichert)"
++            grep -B1 -E 'android:name="(android\.permission\.BLUETOOTH_SCAN|android\.permission\.NEARBY_WIFI_DEVICES|android\.permission\.POST_NOTIFICATIONS)"' \
++              app/src/main/AndroidManifest.xml | grep 'maxSdkVersion\|tools:targetApi' > /tmp/guard.txt || true
++          fi
++
++      - name: Verify Honeywell AAR is in `fileTree`-fallback
++        run: |
++          if grep -qE 'aidc:3\.0\.0' app/build.gradle; then
++            echo "::warning::aidc:3.0.0 wird aus Maven geladen — falls offline,"
++            echo "::warning::kommentiere die Zeile aus und nutze libs/ + fileTree."
++          fi
+diff --git a/.github/workflows/honeywell-experimental.yml b/.github/workflows/honeywell-experimental.yml
+new file mode 100644
+index 0000000..550793a
+--- /dev/null
++++ b/.github/workflows/honeywell-experimental.yml
+@@ -0,0 +1,54 @@
++name: 🛡️ Honeywell DataCollection (experimental)
++
++# ─────────────────────────────────────────────────────────────────────
++#  Disaghether sichijarsischer Workflow: build mit Honeywell AIDD SDK,
++#  der blühen aus libs/ statt Maven geladen wird (offline-Fallback).
++#  Normal-Modus: build-release.yml.
++# ─────────────────────────────────────────────────────────────────────
++
++on:
++  workflow_dispatch:                            # nur manuell aus dem UI
++
++jobs:
++  build-honeywell-libs:
++    name: 🛡️ Hone-Build (local libs)
++    runs-on: ubuntu-latest
++    timeout-minutes: 30
++    steps:
++      - uses: actions/checkout@v4
++
++      - name: Decode Honeywell-AAR
++        env:
++          HONEYWELL_AAR_BASE64: ${{ secrets.HONEYWELL_AAR_BASE64 }}
++        run: |
++          if [ -z "$HONEYWELL_AAR_BASE64" ]; then
++            echo "::warning::HONEYWELL_AAR_BASE64 nicht gesetzt — erstelle Stub-AAR"
++            mkdir -p app/libs
++            echo "MOCK" > app/libs/aidc.aar                  # Stub für Pipeline-Demo
++          else
++            mkdir -p app/libs
++            echo "$HONEYWELL_AAR_BASE64" | base64 -d > app/libs/aidc.aar
++          fi
++
++      - uses: actions/setup-java@v4
++        with:
++          distribution: temurin
++          java-version: '17'
++
++      - uses: gradle/actions/setup-gradle@v3
++        with:
++          gradle-version: 8.5
++
++      - name: Maven-Import deaktivieren + fileTree aktivieren
++        run: |
++          sed -i 's|implementation '"'"'com.honeywell.aidc:aidc:3.0.0'"'"'|// local-libs builds|' app/build.gradle
++          sed -i 's|^[[:space:]]*// implementation fileTree(include:|implementation fileTree(include:|' app/build.gradle
++
++      - name: Build (libs-Fallback)
++        run: |
++          chmod +x gradlew
++          ./gradlew assembleRelease --no-daemon --stacktrace || true
++
++      - name: Restore Build.gradle
++        if: always()
++        run: git checkout app/build.gradle
+-- 
+2.39.5
+
