@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Node-Icon: API/Wolke (WiGle, MacLookup, OpenChargeMap, DHL, CKAN, Google, Netatmo, Helium) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF90CAF9"
+        android:pathData="M19,11 C19.55,11 20,11.45 20,12 C20,12.55 19.55,13 19,13 L14,13 L14,15 L17,15 L12,20 L7,15 L10,15 L10,13 L5,13 C4.45,13 4,12.55 4,12 C4,11.45 4.45,11 5,11 L10,11 L10,9 L7,9 L12,4 L17,9 L14,9 L14,11 Z" />
+    <path
+        android:fillColor="#FF1565C0"
+        android:pathData="M12,5 L15.5,8.5 L13.5,8.5 L13.5,10.5 L10.5,10.5 L10.5,8.5 L8.5,8.5 Z M10.5,13.5 L13.5,13.5 L13.5,15.5 L15.5,15.5 L12,19 L8.5,15.5 L10.5,15.5 Z" />
+</vector>

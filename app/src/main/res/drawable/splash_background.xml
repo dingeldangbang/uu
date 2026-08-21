@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splash-Hintergrund (Android 11/API 30-kompatibel):
+  Layer-List = dunkler Hintergrund + zentriertes Schild-Logo.
+  Wird als android:windowBackground des Splash-Themes genutzt.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/bg" />
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash_logo"
+            android:width="96dp"
+            android:height="96dp" />
+    </item>
+</layer-list>

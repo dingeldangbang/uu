@@ -1,0 +1,150 @@
+diff --git a/.github/workflows/badge.yml b/.github/workflows/badge.yml
+index 8488186..a9b052a 100644
+--- a/.github/workflows/badge.yml
++++ b/.github/workflows/badge.yml
+@@ -20,11 +20,11 @@ jobs:
+           cat <<EOF
+           ## ✅ Bereit-zu-posten Badges (URL):
+ 
+-          ![Build](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/ci.yml/badge.svg)
+-          ![MinPro](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/build-release.yml/badge.svg)
+-          ![CodeQL](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/codeql.yml/badge.svg)
+-          ![Docker](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/build-docker.yml/badge.svg)
+-          ![Dependencies](https://github.com/dang88bang-pixel/Dinge88/actions/workflows/dependency-review.yml/badge.svg)
++          ![Build](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/ci.yml/badge.svg)
++          ![MinPro](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/build-release.yml/badge.svg)
++          ![CodeQL](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/codeql.yml/badge.svg)
++          ![Docker](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/build-docker.yml/badge.svg)
++          ![Dependencies](https://github.com/dang88bang-pixel/wischiwaschi-public/actions/workflows/dependency-review.yml/badge.svg)
+ 
+           ## LICENSE-Datei: war auf default branch — geprüft.
+           EOF
+diff --git a/.github/workflows/build-docker.yml b/.github/workflows/build-docker.yml
+index 01bd4ab..9e1e9b4 100644
+--- a/.github/workflows/build-docker.yml
++++ b/.github/workflows/build-docker.yml
+@@ -6,6 +6,9 @@ on:
+     branches: [ main, develop ]
+     tags: [ 'v*' ]
+ 
++permissions:
++  contents: write                            # Release-Assets anhängen
++
+ jobs:
+   docker-build:
+     runs-on: ubuntu-latest
+@@ -32,7 +35,7 @@ jobs:
+       - name: Upload APK
+         uses: actions/upload-artifact@v4
+         with:
+-          name: wischiwaschi-pro.apk
++          name: secureguard-pro.apk
+           path: dist/*.apk
+           retention-days: 30
+ 
+diff --git a/.github/workflows/build-release.yml b/.github/workflows/build-release.yml
+index 783b54c..60d79a5 100644
+--- a/.github/workflows/build-release.yml
++++ b/.github/workflows/build-release.yml
+@@ -28,7 +28,6 @@ concurrency:
+ 
+ permissions:
+   contents: write                            # Tag + Release erstellen
+-  pages: write
+   packages: read
+ 
+ jobs:
+@@ -68,14 +67,20 @@ jobs:
+       - name: Finde Release-APK
+         id: find-apk
+         run: |
+-          APK=$(ls 'app/build/outputs/apk/release/*.apk' 2>/dev/null | head -1)
+-          echo "apk_path=$APK" >> "$GITHUB_OUTPUT"
+-          echo "apk_name=$(basename "$APK")" >> "$GITHUB_OUTPUT"
++          APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
++          if [ -z "$APK" ]; then
++            echo "::error::Keine Release-APK unter app/build/outputs/apk/release/"
++            exit 1
++          fi
++          TARGET="app/build/outputs/apk/release/secureguard-pro-${GITHUB_REF_NAME}.apk"
++          [ "$APK" = "$TARGET" ] || mv "$APK" "$TARGET"
++          echo "apk_path=$TARGET" >> "$GITHUB_OUTPUT"
++          echo "apk_name=$(basename "$TARGET")" >> "$GITHUB_OUTPUT"
+ 
+       - name: Upload APK als Artifact (Vor-Release-Check)
+         uses: actions/upload-artifact@v4
+         with:
+-          name: wischiwaschi-pro-${{ github.ref_name }}.apk
++          name: secureguard-pro-${{ github.ref_name }}.apk
+           path: ${{ steps.find-apk.outputs.apk_path }}
+           retention-days: 90
+ 
+@@ -135,16 +140,16 @@ jobs:
+             - 📧 Temporäre E-Mail / OTP-Registrierung (MCP + REST)
+ 
+             ### 📦 Downloads
+-            - **APK**: `wischiwaschi-pro-${{ github.ref_name }}.apk`
++            - **APK**: `secureguard-pro-${{ github.ref_name }}.apk`
+ 
+             ### 📋 Installation
+             ```
+-            adb install -r wischiwaschi-pro-${{ github.ref_name }}.apk
++            adb install -r secureguard-pro-${{ github.ref_name }}.apk
+             adb shell am start -n com.secureguard.enterprise/.presentation.MainActivity
+             ```
+ 
+             ### 🐛 Bug-Reports
+-            Bitte via GitHub Issues in `{{ github.repository }}`.
++            Bitte via GitHub Issues in `${{ github.repository }}`.
+           files: |
+             ./apk/*.apk
+           draft: false
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 453e4b2..b50719a 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -22,7 +22,6 @@ permissions:
+   contents: read                            # Checkout
+   packages: read                           # Registries
+   actions: read                            # Artifact-Actions
+-  artifacts: write                         # Artefakte hochladen
+ 
+ jobs:
+   lint:
+@@ -110,7 +109,13 @@ jobs:
+       - name: Decode Keystore
+         env:
+           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+-        run: echo "$KEYSTORE_BASE64" | base64 -d > app/secureguard-keystore.jks
++        run: |
++          if [ -n "$KEYSTORE_BASE64" ]; then
++            echo "$KEYSTORE_BASE64" | base64 -d > app/secureguard-keystore.jks
++            echo "Keystore dekodiert — Release wird signiert."
++          else
++            echo "::notice::Kein KEYSTORE_BASE64 — Release-Build bleibt unsigniert."
++          fi
+ 
+       - name: Build Debug-APK
+         run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
+@@ -136,7 +141,7 @@ jobs:
+       - name: Upload Release-APK
+         uses: actions/upload-artifact@v4
+         with:
+-          name: wischiwaschi-pro.apk
++          name: secureguard-pro.apk
+           path: ${{ steps.find-apk.outputs.apk_path }}
+           retention-days: 60                    # Release deutlich länger verfügbar
+ 
+diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
+index 7df95d8..424f91c 100644
+--- a/.github/workflows/codeql.yml
++++ b/.github/workflows/codeql.yml
+@@ -34,7 +34,7 @@ jobs:
+       - name: Initialize CodeQL
+         uses: github/codeql-action/init@v3
+         with:
+-          languages: kotlin
++          languages: java-kotlin
+           queries: security-extended,security-and-quality
+           build-mode: none                       # Kotlin Projekt ohne separate Build-Phase
+ 

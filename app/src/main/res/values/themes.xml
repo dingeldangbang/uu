@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Haupt-Theme der App -->
+    <style name="Theme.SecureGuard" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor" tools:targetApi="l">@color/primary_dark</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:windowBackground">@color/bg</item>
+    </style>
+
+    <!--
+      Splash-Theme (Alternative zu dunklem Start-Blitz).
+      Zeigt windowBackground mit zentriertem Logo, bevor Compose rendert.
+      Kompatibel mit Android 11 (API 30) — kein SplashScreen-API nötig.
+    -->
+    <style name="Theme.SecureGuard.Splash" parent="Theme.SecureGuard">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+</resources>
