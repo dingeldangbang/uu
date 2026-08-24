@@ -1,34 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">wischiwaschi</string>
-
-    <!-- Top-bar Titles -->
-    <string name="title_dashboard">🛡️ SecureGuard Pro</string>
-    <string name="title_assets">📦 Assets</string>
-    <string name="title_asset_detail">Asset Detail</string>
-    <string name="title_map">🗺️ Karte</string>
-    <string name="title_actions">⚡ Aktionen</string>
-    <string name="title_agent">🤖 Agent Konfiguration</string>
-    <string name="title_settings">⚙️ Settings</string>
-    <string name="title_alerts">🚨 Alerts</string>
-    <string name="title_scan">📷 QR-Scan</string>
-    <string name="title_add_asset">➕ Asset hinzufügen</string>
-
-    <!-- Bottom Navigation -->
-    <string name="nav_dashboard">Dashboard</string>
-    <string name="nav_assets">Assets</string>
-    <string name="nav_map">Karte</string>
-    <string name="nav_actions">Aktionen</string>
-    <string name="nav_agent">Agent</string>
-    <string name="nav_settings">Settings</string>
-
-    <!-- Notifications -->
-    <string name="notif_channel_alerts">Alerts</string>
-    <string name="notif_channel_alerts_desc">Kritische Sicherheitsereignisse</string>
-    <string name="notif_channel_services">Hintergrund-Services</string>
-    <string name="notif_channel_services_desc">Status laufender Hintergrund-Prozesse</string>
-
-    <!-- Permissions -->
+    <string name="app_name">Penner Kombat</string>
+    <string name="title_dashboard">🩸 Penner Kombat</string>
+    <string name="title_assets">Kämpfer</string>
+    <string name="title_asset_detail">Kämpfer Detail</string>
+    <string name="title_map">Arena</string>
+    <string name="title_actions">Moves</string>
+    <string name="title_agent">Story</string>
+    <string name="title_settings">Optionen</string>
+    <string name="title_alerts">Trophäen</string>
+    <string name="title_scan">Scan</string>
+    <string name="title_add_asset">Kämpfer</string>
+    <string name="nav_dashboard">Menü</string>
+    <string name="nav_assets">Kämpfer</string>
+    <string name="nav_map">Arena</string>
+    <string name="nav_actions">Moves</string>
+    <string name="nav_agent">Story</string>
+    <string name="nav_settings">Optionen</string>
+    <string name="notif_channel_alerts">Penner Kombat</string>
+    <string name="notif_channel_alerts_desc">Kampf Events</string>
+    <string name="notif_channel_services">Hintergrund</string>
+    <string name="notif_channel_services_desc">Game Service</string>
     <string name="perm_required_title">Berechtigung erforderlich</string>
     <string name="perm_required_msg">Diese Funktion benötigt Zugriff auf %s.</string>
 </resources>

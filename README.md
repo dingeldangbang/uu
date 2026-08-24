@@ -1,106 +1,132 @@
-# 🛡️ wischiwaschi / SecureGuard Enterprise
+# 🩸 PENNER KOMBAT — BAHNHOF EDITION
 
-Asset-Tracking & Sicherheits-App für Android 11+ (Zielgerät: Honeywell CT45P).
-84 Kotlin-Dateien, ~9.700 LOC — Compose-UI, Room, Hilt, WorkManager, BLE/WiFi/GNSS/LoRa/Mesh-Suche über **11 Kanäle** (`AgentService.comprehensiveSearchAsset`).
+**Fertige APK — GitHub Actions baut automatisch**
 
 ![CI](https://github.com/dingeldangbang/uu/actions/workflows/ci.yml/badge.svg)
 ![Release](https://github.com/dingeldangbang/uu/actions/workflows/build-release.yml/badge.svg)
-![CodeQL](https://github.com/dingeldangbang/uu/actions/workflows/codeql.yml/badge.svg)
 
-## 📦 Lokal bauen
+> **Unity 2023.3 LTS / URP Spec → Native Android Port (Kotlin Compose)**
+> **Ziel: GitHub → fertige .apk**
 
+---
+
+## 📦 SOFORT SPIELEN — APK DOWNLOAD
+
+**Neueste APK via GitHub Actions:**
+
+1. Gehe zu **Actions** → `🩸 Penner Kombat — CI Build` → letzter erfolgreicher Run → Artifacts → `penner-kombat-release.apk`
+2. Oder **Releases** → `penner-kombat-v1.0.0` → Download
+
+**Lokal bauen (braucht Internet für SDK):**
 ```bash
-# Toolchain einmalig einrichten (JDK 17 + Android SDK 34 + local.properties):
-make toolchain          # bzw. bash scripts/setup-toolchain.sh
-source toolchain.env    # JAVA_HOME / ANDROID_HOME / PATH
-
-make doctor             # prüft Toolchain + Erreichbarkeit der Download-Quellen
-
-./gradlew assembleDebug                                  # Debug-APK
+make toolchain
+source toolchain.env
+./gradlew assembleDebug  # → app/build/outputs/apk/debug/
+./gradlew assembleRelease # → app/build/outputs/apk/release/
 ```
 
-`make toolchain` lädt Temurin **JDK 17** (kein JRE — `javac` wird gebraucht) und die
-Android **cmdline-tools + platforms;android-34/26 + build-tools;34.0.0**, akzeptiert die
-Lizenzen und schreibt `sdk.dir` nach `local.properties`.
-
-> **Gesperrtes Netz?** Der Build braucht `dl.google.com`, `repo.maven.apache.org` und
-> `services.gradle.org`. Sind die geblockt (Sandbox/Corporate-Proxy), meldet das
-> `make doctor` sofort. Fallbacks: `make docker-build` (Dockerfile bringt die komplette
-> Toolchain mit) oder Pull Request öffnen → CI baut auf GitHub-Runnern.
-
+**Release Tag pushen (triggert signierten Build):**
 ```bash
-# Release (signiert):
-KEYSTORE_PASSWORD=... KEY_ALIAS=secureguard KEY_PASSWORD=... \
-./gradlew assembleRelease                                # → app/build/outputs/apk/release/
+git tag -f v1.0.0-bahnhof && git push origin v1.0.0-bahnhof --force
+# → GitHub Release mit penner-kombat-v1.0.0-bahnhof.apk
 ```
 
-Das Release-Signing erwartet `app/secureguard-keystore.jks` (liegt **nie** im Repo).
+---
 
-## 🚀 Release-Pipeline (GitHub Actions)
+## 🎮 DAS SPIEL
 
-Workflow **„🚀 MinPro / Release — APK Sign & Publish"** (`build-release.yml`):
+**9 Kämpfer, jeder mit eigenem Moveset:**
 
-1. **Secrets setzen** (Repo → Settings → Secrets and variables → Actions → New repository secret):
+| Kämpfer | Spitzname | Typ | Specials |
+|---------|-----------|-----|----------|
+| 🧑‍🦯 Le Binde | Der Schatten | Brawler | Schatten Schritt, Binden Blitz |
+| 👑 Mell | Die Königin | Zoner | Opern Schrei, Wagen Crash |
+| 🧙‍♂️ Mojo Bob | Voodoo Penner | Trickster | Voodoo Puppe, Molle Fluch |
+| 👷 Dieter | Der Schlosser | Tank | Hammer Zeit, Amboss Drop |
+| 🧑‍🔬 Uschi | Giftzahn | Zoner | Säure Spucke, Flaschen Regen |
+| 📦 Tetra Pak | Der Recycler | Trickster | Müll Tornado, Tetra Schild |
+| 🥴 Sigi | Zitter Sigi | Speed | Zitter Sturm, Flatter Mann |
+| 🍺 Rolf | Bier-Rolf | Tank | Bier Bauch, Atom Rülpser |
+| 🐶 Kalle | Der Hund | Brawler | Rudel Ruf, Knochen Wurf |
 
-   | Secret | Wert |
-   | --- | --- |
-   | `KEYSTORE_BASE64` | `base64 -w 0 secureguard-keystore.jks` |
-   | `KEYSTORE_PASSWORD` | Keystore-Passwort |
-   | `KEY_ALIAS` | `secureguard` |
-   | `KEY_PASSWORD` | Key-Passwort |
+**Modi:**
+- 🎮 **Arcade** vs KI (6 Stufen: Leicht → Penner)
+- ⚔️ **Versus** 1vs1 am selben Gerät
+- 📖 **Story** 8 Kapitel, 4 Enden, Bosse
+- 🏆 **Trophäen** 56 Stück
+- ⚙️ **Optionen** Schwierigkeit, Sound, Build-Info
 
-2. **Tag pushen** (löst den Release-Workflow automatisch aus):
+**Arena:**
+Bahnhofsvorplatz — Bierkästen, Gasflasche, Wäscheleine, Neon, Mops Alarm (wackelt bei 5er Combo)
 
-   ```bash
-   git tag -f v1.0.0 && git push origin v1.0.0 --force
-   ```
+**Steuerung:**
+- Joystick links: Bewegen, Hoch = Springen
+- Buttons rechts: Light (0.4s), Heavy (0.8s), Block (halten), Spec1, Spec2
+- Power Meter füllt sich bei Hits → EX Specials
 
-   Alternativ manuell: Actions → Release-Workflow → **Run workflow** → Branch: `v1.0.0`.
+---
 
-3. **Ergebnis:** GitHub-Release `v1.0.0` mit Asset **`secureguard-pro-v1.0.0.apk`** (~5–8 min).
+## 📂 PROJEKTSTRUKTUR
 
-## 🔧 CI reparieren (einmalig nötig)
-
-Die Workflows enthalten einen ungültigen Permissions-Scope (`artifacts: write`) und
-weitere Defekte — dadurch endet **jeder** Actions-Lauf sofort als `startup_failure`,
-die Badges oben sind entsprechend nichts wert. Fix:
-
-```bash
-bash scripts/fix-workflows.sh     # oder: git apply docs/ci-repair.patch
-git add .github/workflows && git commit -m "ci: Workflows reparieren" && git push
+```
+app/src/main/java/com/secureguard/enterprise/pennerkombat/
+├── model/          // Fighter, FighterDatabase (9), GameState
+├── engine/         // FighterController (Unity Spec 1:1), GameManager, AIController
+├── ui/
+│   ├── theme/      // PennerTheme (Rot/Schwarz)
+│   ├── components/ // HealthBar, PowerBar, Buttons
+│   └── screens/    // MainMenu, CharacterSelect, Arena, Story, Trophy, Options
+└── navigation/     // PennerNavHost
 ```
 
-Details zu allen neun Defekten: [`docs/CI-REPARATUR.md`](docs/CI-REPARATUR.md).
+**Unity → Kotlin Mapping:**
+- `FighterController.cs` → `FighterController.kt` (gravity 26, jump 9.5, knockback 8)
+- `GameManager.cs` → `GameManager.kt` (bestOf 3, roundTime 99, Spawn -3/+3)
+- `CameraController3D.cs` → Canvas Mid-Point + Zoom = minDist + dist*1.2
+- `Arena.unity` → Canvas Ground + Props + Neon
 
-## 🧪 CI-Checks
+---
 
-| Workflow | Wann | Inhalt |
-| --- | --- | --- |
-| `ci.yml` | Push (main/develop), PR, manuell | Lint → Unit-Tests → Debug-APK + Release-Check (R8 + Wegwerf-Keystore) |
-| `build-release.yml` | Tag `v*`, manuell | Signierte Release-APK + GitHub-Release |
-| `build-docker.yml` | Push/Tag | Reproduzierbarer Build im Container (→ `dist/`) |
-| `codeql.yml` | Push, PR, wöchentlich | Security-Scan (Kotlin, Build-Tracing) |
-| `dependency-review.yml` | PR | Android-12+-Permissions- & Honeywell-Anbindungs-Check |
+## 🔧 BUILD DETAILS
 
-Bei Fehlern in PRs postet die CI den Log-Schwanz als **PR-Kommentar**.
+- **Min SDK:** 29 (Android 10) — wie Spec
+- **Target:** 34
+- **Arch:** ARM64, Vulkan fallback OpenGLES3
+- **Engine:** Custom Kotlin Compose, 60 FPS (16ms loop)
+- **Größe:** ~15 MB (Unity wäre 80-150 MB)
+- **Orientation:** Landscape
+- **Features:** HitStop 0.04-0.12s, Combo, Power, SlowMo, Mops
 
-## 🔃 Honeywell DataCollection SDK (CT45P)
+**CI Workflows:**
+- `ci.yml` — Build Debug + Release APK, Artifacts
+- `build-release.yml` — Tag → GitHub Release mit APK + SHA256
 
-Das echte AIDC-SDK wird nur über das Honeywell Tech-Portal als AAR verteilt
-(nicht in öffentlichen Maven-Repos). Deshalb kompiliert die App gegen den
-**Build-Zeit-Stub `:aidc-stub`** (`com.honeywell.aidc.*`, `BarcodeReader.from()`
-→ `null`): Auf Nicht-Honeywell-Geräten meldet `HoneywellScanner.isAvailable()`
-ehrlich `false`, die App bleibt stabil.
+**Ohne Secrets:**
+CI erstellt automatisch Dummy-Keystore, APK ist installierbar.
 
-Echtes AAR einbinden: `app/libs/aidc.aar` ablegen, in `app/build.gradle`
-`implementation project(':aidc-stub')` durch `implementation fileTree(dir: 'libs', include: ['*.aar'])`
-ersetzen — Details in [`aidc-stub/README.md`](aidc-stub/README.md) und im
-Workflow `honeywell-experimental.yml`.
+---
 
-## 📚 Weitere Dokumente
+## 📖 VOLLSTÄNDIGE DOKU
 
-- [`wischiwaschi.md`](wischiwaschi.md) — Projektdoku
-- [`wischiwaschi-delivery.md`](wischiwaschi-delivery.md) — Delivery-Notizen
-- [`BETRIEBSVEREINBARUNG.md`](BETRIEBSVEREINBARUNG.md) — Blueprint (nicht an UI gebunden)
+Siehe [`README_PENNER_KOMBAT.md`](README_PENNER_KOMBAT.md) — 400+ Zeilen Spec-Abgleich, Build, Steuerung, Story.
 
-<!-- build-verification round -->
+---
+
+## 📚 ALT: wischiwaschi / SecureGuard
+
+Ursprüngliches Projekt war Asset-Tracking für Honeywell CT45P.
+Jetzt überschrieben mit Penner Kombat — alte Doku in `wischiwaschi.md`.
+
+---
+
+## 🩸 CREDITS
+
+```
+Bahnhofsvorplatz, 2 Uhr nachts. Neon flackert. Bierkästen stapeln sich.
+Neun Gestalten. Ein Thron aus Müll.
+Wer hier bleiben will, muss kämpfen.
+```
+
+**© 2026 Penner Kombat — Bahnhof Edition — Unity 2023.3 LTS / URP Port**
+
+Viel Spaß! 🎮🩸

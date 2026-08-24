@@ -2,67 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- 📡 Location / GNSS (CT45P hat Qualcomm GPS) -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!--
-        ACCESS_BACKGROUND_LOCATION wird bewusst NICHT deklariert: Tracking läuft
-        ausschließlich im Vordergrund (siehe MainActivity + BETRIEBSVEREINBARUNG §2).
-        Eine Deklaration ohne Runtime-Request wäre nur ein Play-Review-Blocker.
-    -->
-
-    <!-- 📡 Bluetooth / BLE -->
-    <uses-permission android:name="android.permission.BLUETOOTH"
-        android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="30" />
-    <!--
-        Kein `usesPermissionFlags="neverForLocation"`: die App leitet aus BLE-/WLAN-
-        Scans bewusst Standortinformationen ab (Asset-Ortung über RSSI). Das Flag
-        wäre hier eine Falschaussage gegenüber Nutzer und Play-Review.
-    -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
-        tools:targetApi="31" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"
-        tools:targetApi="31" />
-
-    <!-- 🌐 Network (Crowdsourcing) -->
+    <!-- Penner Kombat - Minimal Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- 📷 Rechte-API: Honeywell-Reader nutzt integrierten Imager,
-         erweiterte Camera-Hooks nur bei Bedarf -->
-    <uses-permission android:name="android.permission.CAMERA"
-        tools:node="merge" />
-
-    <!-- 🌐 WLAN / Telefonie für UrbanService -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.READ_BASIC_PHONE_STATE" />
-    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
-        tools:targetApi="33" />
-
-    <!-- 🔔 Notifications (Alerts + Agent-Status)
-         FOREGROUND_SERVICE* ist NICHT deklariert: die App betreibt keinen
-         Foreground-Service; periodische Läufe erledigt WorkManager
-         (SecureAgentWorker, kein expedited work / kein setForeground). -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <!-- 🔋 Wake (WorkManager) — RECEIVE_BOOT_COMPLETED entfällt, es gibt keinen
-         BOOT_COMPLETED-Receiver; WorkManager re-scheduled selbst nach Reboot. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Honeywell-spezifisch (Bestandteil von CT45P-Betriebssystem-Image) -->
-    <uses-permission android:name="com.honeywell.aidc.permission.RETRIEVE_DATA"
-        tools:ignore="ProtectedPermissions" />
-
-    <!-- Hardware-Features (CT45P-Reichweite), alles optional -->
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
-    <uses-feature android:name="com.honeywell.aidc" android:required="false" />
-    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
+    <uses-feature android:name="android.hardware.touchscreen.multitouch" android:required="false" />
 
     <application
         android:name=".SecureGuardApplication"
@@ -70,7 +16,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
+        android:supportsRtl="false"
         android:theme="@style/Theme.SecureGuard"
         android:networkSecurityConfig="@xml/network_security_config"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -84,14 +30,14 @@
             android:label="@string/app_name"
             android:theme="@style/Theme.SecureGuard.Splash"
             android:launchMode="singleTop"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection|navigation">
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection|navigation|keyboard">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Hilt WorkManager-Initializer (ohne Custom-WorkerFactory-Probleme) -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
@@ -103,35 +49,5 @@
                 tools:node="remove" />
         </provider>
 
-        <!--
-            Honeywell DataCollection Service wird vom OEM-Image bereitgestellt;
-            keine eigene <service>-Deklaration nötig. Scanner-Trigger werden über die
-            Honeywell AIDC SDK dynamisch callbacks registriert.
-        -->
     </application>
-
-    <!--
-        Android 11+ Package Visibility: Explizite <queries>, damit das System
-        Honeywell-Imager-Intents und BLE-Scanner-bezogene Pakete "sieht".
-        Ohne diese Deklaration würde PackageManager.resolve() auf API 30+
-        NULL zurückgeben – der Scanner wäre stumm.
-    -->
-    <queries>
-        <intent>
-            <action android:name="com.honeywell.aidc.action.SCAN" />
-        </intent>
-        <intent>
-            <action android:name="com.honeywell.aidc.action.BARCODE_DATA" />
-        </intent>
-        <intent>
-            <action android:name="com.google.android.gms.location.FUSED_LOCATION_PROVIDER" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="https" />
-        </intent>
-        <package android:name="com.google.android.gms" />
-        <package android:name="com.honeywell.aidc" />
-        <package android:name="com.android.bluetooth" />
-    </queries>
 </manifest>

@@ -123,3 +123,8 @@
 -keep class com.secureguard.enterprise.services.HoneywellScanner$* { *; }
 -keep class com.secureguard.enterprise.worker.SecureAgentWorker { *; }
 -keep class com.secureguard.enterprise.worker.SecureAgentWorker$* { *; }
+
+# --- Penner Kombat - Keep all game classes ---
+-keep class com.secureguard.enterprise.pennerkombat.** { *; }
+-keep class com.secureguard.enterprise.presentation.** { *; }
+-dontwarn com.secureguard.enterprise.pennerkombat.**

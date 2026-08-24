@@ -11,11 +11,11 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.secureguard.enterprise"
-        minSdk 26
+        applicationId "com.pennerkambat.game"
+        minSdk 29
         targetSdk 34
-        versionCode 1
-        versionName "1.0.0-wischiwaschi"
+        versionCode 100
+        versionName "1.0.0-penner-kombat-bahnhof"
         vectorDrawables {
             useSupportLibrary true
         }
