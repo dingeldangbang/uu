@@ -1,0 +1,171 @@
+name: 🚀 Penner Kombat — Release APK
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (z.B. v1.0.0)"
+        required: false
+        default: "v1.0.0"
+      pre_release:
+        description: "Pre-Release"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build:
+    name: 📦 Build + Sign
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.5
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > app/secureguard-keystore.jks
+            echo "Keystore decoded"
+          else
+            echo "::notice::No KEYSTORE_BASE64 - building unsigned APK"
+            # Create dummy keystore for CI
+            keytool -genkey -v -keystore app/secureguard-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -alias androiddebugkey -dname "CN=Penner Kombat, OU=Game, O=PennerKombat, L=Bahnhof, S=Berlin, C=DE" || true
+          fi
+
+      - name: Build Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'androiddebugkey' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'android' }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          ls -lh app/build/outputs/apk/release/
+
+      - name: Rename APK to Penner Kombat
+        id: find-apk
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            echo "::error::No APK found"
+            exit 1
+          fi
+          VERSION=${GITHUB_REF_NAME:-${{ inputs.version }}}
+          TARGET="penner-kombat-${VERSION}.apk"
+          cp "$APK" "$TARGET"
+          echo "apk_path=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "apk_name=$TARGET" >> "$GITHUB_OUTPUT"
+          ls -lh "$TARGET"
+          sha256sum "$TARGET"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.find-apk.outputs.apk_name }}
+          path: ${{ steps.find-apk.outputs.apk_path }}
+          retention-days: 90
+
+  publish:
+    name: 📤 GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          pattern: penner-kombat-*.apk
+          path: ./apk
+          merge-multiple: true
+
+      - name: Build Info
+        id: info
+        run: |
+          APK=$(ls ./apk/*.apk | head -1)
+          SIZE=$(stat -c%s "$APK")
+          SHA=$(sha256sum "$APK" | cut -d' ' -f1)
+          echo "apk_size=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "apk_sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "apk_file=$(basename $APK)" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "🩸 Penner Kombat ${{ github.ref_name || inputs.version }}"
+          body: |
+            ## 🩸 PENNER KOMBAT — BAHNHOF EDITION
+
+            **Build:** ${{ github.workflow }} · ${{ github.run_id }}
+            **Commit:** ${{ github.sha }}
+            **Größe:** ${{ steps.info.outputs.apk_size }} bytes
+            **SHA256:** `${{ steps.info.outputs.apk_sha256 }}`
+
+            ### 🎮 DAS SPIEL
+            - **9 Kämpfer:** Le Binde, Mell, Mojo Bob, Dieter, Uschi, Tetra Pak, Sigi, Rolf, Kalle
+            - **Movesets:** 5 Spezial + EX-Versionen + Fatalities + Brutalities
+            - **Modi:** Arcade (vs KI 6 Stufen), Versus (1vs1), Story (8 Kapitel, 4 Enden)
+            - **Arena:** Bahnhofsvorplatz mit interaktiven Objekten (Bierkästen, Gasflasche, Wäscheleine)
+            - **System:** 360° Movement, Hitboxen, Ragdoll, SlowMo Finisher, Combo Counter
+            - **Extras:** 56 Trophäen, Power-Ups, Boss-Kämpfe, Mops Alarm, Xtreme Post-Processing
+
+            ### 📱 INSTALLATION
+            ```bash
+            adb install -r ${{ steps.info.outputs.apk_file }}
+            # oder direkt aufs Handy ziehen und installieren
+            ```
+
+            ### 🎯 STEUERUNG
+            - **Joystick links:** Bewegen + Hoch = Springen
+            - **Buttons rechts:** Light, Heavy, Block, Spec1, Spec2
+            - **Combo:** Light → Light → Heavy = 3-Hit Combo
+            - **Specials:** Power Meter füllt sich bei Hits, dann Spec1/Spec2
+
+            ### 🏆 CHARAKTERE
+            | Kämpfer | Typ | Spezial |
+            |---------|-----|---------|
+            | Le Binde 🧑‍🦯 | Brawler | Schatten Schritt, Binden Blitz |
+            | Mell 👑 | Zoner | Opern Schrei, Wagen Crash |
+            | Mojo Bob 🧙‍♂️ | Trickster | Voodoo Puppe, Molle Fluch |
+            | Dieter 👷 | Tank | Hammer Zeit, Amboss Drop |
+            | Uschi 🧑‍🔬 | Zoner | Säure Spucke, Flaschen Regen |
+            | Tetra Pak 📦 | Trickster | Müll Tornado, Tetra Schild |
+            | Sigi 🥴 | Speed | Zitter Sturm, Flatter Mann |
+            | Rolf 🍺 | Tank | Bier Bauch, Atom Rülpser |
+            | Kalle 🐶 | Brawler | Rudel Ruf, Knochen Wurf |
+
+            ### 🔧 BUILD INFO
+            - Unity 2023.3 LTS / URP Port → Native Kotlin Compose
+            - Min SDK 26 (Android 8), Target 34, Vulkan + OpenGLES3 Fallback
+            - ARM64, Landscape, 60 FPS
+
+            Viel Spaß auf der Straße! 🩸🎮
+
+          files: |
+            ./apk/*.apk
+          draft: false
+          prerelease: ${{ inputs.pre_release == true }}
+          generate_release_notes: true
