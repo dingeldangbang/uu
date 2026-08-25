@@ -5,15 +5,15 @@
     android:viewportHeight="108">
     <!-- Schild -->
     <path
-        android:fillColor="#1565C0"
+        android:fillColor="#F8F9FA"
         android:pathData="M54,18 L82,30 L82,58 C82,72 70,84 54,90 C38,84 26,72 26,58 L26,30 Z" />
     <!-- Haken -->
     <path
-        android:fillColor="#FFB300"
+        android:fillColor="#005EB8"
         android:pathData="M54,40 L48,52 L60,52 L60,68 L48,68 L48,52" />
     <!-- Inner Outline -->
     <path
-        android:strokeColor="#E6EDF3"
+        android:strokeColor="#A9C7FF"
         android:strokeWidth="1.5"
         android:fillColor="#00000000"
         android:pathData="M54,28 L74,36 L74,58 C74,68 64,76 54,80 C44,76 34,68 34,58 L34,36 Z" />

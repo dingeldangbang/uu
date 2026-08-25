@@ -4,7 +4,7 @@
 #  Builds:    make debug / make release
 #  Aids:      make setup / make lint
 # =============================================================================
-.PHONY: setup bootstrap toolchain doctor fix-workflows help debug release test lint clean install \
+.PHONY: setup bootstrap toolchain doctor help debug release test lint clean install \
         docker-build docker-run docker-push
 
 ENV_FILE := env.local
@@ -15,7 +15,6 @@ help:
 	@echo "  make setup         – Scripts + ENV vorbereiten"
 	@echo "  make toolchain     – JDK 17 + Android SDK 34 installieren (one-shot)"
 	@echo "  make doctor        – Toolchain + Netzzugang pruefen (kein Download)"
-	@echo "  make fix-workflows – GitHub-Actions-Workflows reparieren (docs/CI-REPARATUR.md)"
 	@echo "  make bootstrap     – Java 17 + Android SDK + Gradle-Wrapper"
 	@echo "  make debug         – APK debug (kein Signer)"
 	@echo "  make release       – APK release (signierte Variante)"
@@ -40,10 +39,6 @@ toolchain:
 
 doctor:
 	@bash scripts/setup-toolchain.sh --check
-	@bash scripts/fix-workflows.sh --check || true
-
-fix-workflows:
-	@bash scripts/fix-workflows.sh
 
 bootstrap:
 	@bash scripts/bootstrap.sh

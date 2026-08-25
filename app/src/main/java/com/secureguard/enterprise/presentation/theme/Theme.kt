@@ -19,32 +19,56 @@ import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.googlefonts.GoogleFont.Provider
 import androidx.compose.ui.unit.sp
 
+/**
+ * Design-System „Industrial Precision 2.0" (Stitch-Referenz):
+ *   Light — Primary #005EB8 · Secondary #1A1C1E · Tertiary #EE3124 · Neutral #F8F9FA
+ *   Dark  — Primary #A9C7FF · Secondary #C6C6C9 · Tertiary #FFB4A9 · Neutral #76777B
+ * Schrift: Inter (Google Fonts Provider, Fallback SansSerif).
+ */
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF1565C0),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF003C8F),
-    secondary = Color(0xFFFFB300),
-    onSecondary = Color.Black,
-    tertiary = Color(0xFF2E7D32),
-    background = Color(0xFF0D1117),
-    onBackground = Color(0xFFE6EDF3),
-    surface = Color(0xFF161B22),
-    onSurface = Color(0xFFE6EDF3),
-    surfaceVariant = Color(0xFF1F2630),
-    error = Color(0xFFE53935)
+    primary = Color(0xFFA9C7FF),
+    onPrimary = Color(0xFF002F5F),
+    primaryContainer = Color(0xFF004A8F),
+    onPrimaryContainer = Color(0xFFD3E3FF),
+    secondary = Color(0xFFC6C6C9),
+    onSecondary = Color(0xFF1A1C1E),
+    secondaryContainer = Color(0xFF30343A),
+    onSecondaryContainer = Color(0xFFE2E3E5),
+    tertiary = Color(0xFFFFB4A9),
+    onTertiary = Color(0xFF4A0E07),
+    tertiaryContainer = Color(0xFF8C2A1C),
+    onTertiaryContainer = Color(0xFFFFDAD4),
+    background = Color(0xFF1A1C1E),
+    onBackground = Color(0xFFF8F9FA),
+    surface = Color(0xFF1A1C1E),
+    onSurface = Color(0xFFF8F9FA),
+    surfaceVariant = Color(0xFF30343A),
+    onSurfaceVariant = Color(0xFFC6C6C9),
+    error = Color(0xFFFFB4A9),
+    onError = Color(0xFF4A0E07)
 )
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF1565C0),
+    primary = Color(0xFF005EB8),
     onPrimary = Color.White,
-    secondary = Color(0xFFEF6C00),
-    tertiary = Color(0xFF2E7D32),
-    background = Color(0xFFF5F7FA),
-    onBackground = Color(0xFF0D1117),
+    primaryContainer = Color(0xFFD3E3FF),
+    onPrimaryContainer = Color(0xFF001B3D),
+    secondary = Color(0xFF1A1C1E),
+    onSecondary = Color(0xFFF8F9FA),
+    secondaryContainer = Color(0xFFE2E3E5),
+    onSecondaryContainer = Color(0xFF1A1C1E),
+    tertiary = Color(0xFFEE3124),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFFFB4A9),
+    onTertiaryContainer = Color(0xFF4A0E07),
+    background = Color(0xFFF8F9FA),
+    onBackground = Color(0xFF1A1C1E),
     surface = Color.White,
-    onSurface = Color(0xFF0D1117),
+    onSurface = Color(0xFF1A1C1E),
     surfaceVariant = Color(0xFFE3E8EE),
-    error = Color(0xFFC62828)
+    onSurfaceVariant = Color(0xFF44484C),
+    error = Color(0xFFEE3124),
+    onError = Color.White
 )
 
 /**
