@@ -45,7 +45,19 @@ Das Release-Signing erwartet `app/secureguard-keystore.p12` (PKCS12, liegt **nie
 ## 🚀 Release-Pipeline (GitHub Actions)
 
 Workflow **„Release"** (`build-release.yml`) — baut die signierte APK und
-veröffentlicht sie als GitHub-Release-Asset (inkl. SHA256SUMS):
+veröffentlicht sie als GitHub-Release-Asset (inkl. SHA256SUMS).
+
+> **Einmalige Admin-Einrichtung:** GitHub erlaubt das Anlegen von
+> `.github/workflows/*` und das Setzen von Actions-Secrets nur Konten mit
+> `workflows`-/`secrets`-Berechtigung. Deshalb liegen die Workflows als
+> Vorlagen unter [`docs/workflows/`](docs/workflows/) bereit:
+>
+> ```bash
+> bash scripts/install-workflows.sh     # kopiert Vorlagen nach .github/workflows/
+> git add .github/workflows && git commit -m "ci: Workflows aktivieren" && git push
+>
+> bash scripts/set-release-secrets.sh signing/secureguard-keystore.p12
+> ```
 
 1. **Keystore erzeugen** (PKCS12, ohne keytool):
    ```bash
@@ -58,7 +70,9 @@ veröffentlicht sie als GitHub-Release-Asset (inkl. SHA256SUMS):
    base64 -w 0 secureguard-keystore.p12   # → Inhalt für KEYSTORE_BASE64
    ```
 
-2. **Secrets setzen** (Repo → Settings → Secrets and variables → Actions):
+2. **Secrets setzen** — entweder per Skript
+   `bash scripts/set-release-secrets.sh signing/secureguard-keystore.p12`
+   oder manuell (Repo → Settings → Secrets and variables → Actions):
 
    | Secret | Wert |
    | --- | --- |
