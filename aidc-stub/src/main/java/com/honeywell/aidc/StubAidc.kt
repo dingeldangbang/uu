@@ -20,7 +20,7 @@ import android.content.Context
  *  Echtes SDK einbinden: AAR nach `app/libs/` legen und in
  *  `app/build.gradle` die Abhängigkeit von `project(':aidc-stub')`
  *  auf `fileTree(dir: 'libs', include: ['*.aar'])` umstellen.
- *  Siehe auch: honeywell-experimental.yml (CI-Check).
+ *  
  */
 
 /** Barcode-/QR-Leseereignis (Stub: immer leer). */
