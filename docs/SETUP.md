@@ -146,20 +146,24 @@ systemProp.https.proxyPort=3128
 
 ---
 
-## 5. 🔐 KEystore einrichten (für Release-Builds)
+## 5. 🔐 Keystore einrichten (für Release-Builds)
 
-Sobald die CI laufen soll, base64-Keystore in `KEYSTORE_BASE64`-Secret hinterlegen:
+Sobald die CI laufen soll, base64-Keystore in `KEYSTORE_BASE64`-Secret hinterlegen.
+
+Das Release-Signing erwartet `app/secureguard-keystore.p12` (PKCS12) — ohne keytool per `openssl pkcs12 -export` erzeugen:
 
 ```bash
-keytool -genkey -v -keystore secureguard-keystore.jks \
-        -keyalg RSA -keysize 2048 -validity 10000 \
-        -alias secureguard \
-        -storepass password -keypass password \
-        -dname "CN=SecureGuard,OU=IT,O=Pilot,C=DE"
-
-base64 -w 0 secureguard-keystore.jks > keystore.b64
+openssl req -x509 -newkey rsa:2048 -nodes -days 10950 \
+  -keyout key.pem -out cert.pem \
+  -subj "/CN=SecureGuard Enterprise/O=SecureGuard/C=DE"
+openssl pkcs12 -export -out secureguard-keystore.p12 \
+  -inkey key.pem -in cert.pem -name secureguard \
+  -passout pass:<EIGENES-PASSWORT>
+base64 -w 0 secureguard-keystore.p12 > keystore.b64
 # Inhalt in GitHub-Secret: KEYSTORE_BASE64=...
 ```
+
+Das Passwort wird zusätzlich als `KEYSTORE_PASSWORD`- und `KEY_PASSWORD`-Secret hinterlegt (bei der openssl-Variante sind beide identisch).
 
 ---
 

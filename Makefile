@@ -65,14 +65,14 @@ install:
 	adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 docker-build:
-	docker build -t securegard-build:dev -f Dockerfile .
+	docker build -t secureguard-build:dev -f Dockerfile .
 
 docker-run:
 	docker run --rm -it \
 	    -v $(PWD):/src -w /src \
 	    -v $(SDK_ROOT):/root/.android \
-	    securegard-build:dev \
+	    secureguard-build:dev \
 	    bash
 
 docker-push:
-	docker push securegard-build:dev
+	docker push secureguard-build:dev

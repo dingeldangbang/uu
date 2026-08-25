@@ -10,8 +10,8 @@ captures/
 *.apk
 *.aab
 *.keystore
-*.jks
-secureguard-keystore.jks
+*.p12
+secureguard-keystore.p12
 keystore.b64
 .git/
 .gitignore
