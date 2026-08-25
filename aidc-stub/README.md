@@ -29,5 +29,5 @@ ehrlich `false` und die App läuft auf Nicht-Honeywell-Geräten stabil.
    ```gradle
    implementation fileTree(dir: 'libs', include: ['*.aar'])
    ```
-4. Optionaler CI-Check: `honeywell-experimental.yml` (workflow_dispatch)
-   baut mit dem AAR aus dem Secret `HONEYWELL_AAR_BASE64`.
+4. Optionaler CI-Check: ein Workflow-Dispatch-Build, der mit dem AAR aus dem
+   Secret `HONEYWELL_AAR_BASE64` baut.
