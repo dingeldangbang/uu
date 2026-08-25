@@ -1,4 +1,4 @@
-# wischiwaschi / SecureGuard Enterprise — reproduzierbares Build-Image
+# SecureGuard / SecureGuard Enterprise — reproduzierbares Build-Image
 # ─────────────────────────────────────────────────────────────────
 # Erzeugt ein Toolchain-Image (JDK 17 + Android SDK 34 + Build-Tools).
 # Der Quellcode wird zur Build-Zeit gemountet (siehe docker-compose.yml):

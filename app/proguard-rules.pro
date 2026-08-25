@@ -1,5 +1,5 @@
 # ============================================================
-# SecureGuard / wischiwaschi — ProGuard / R8 rules
+# SecureGuard Enterprise — ProGuard / R8 rules
 # ============================================================
 # Diese Regeln zusammen mit der minifyEnabled-fähigen release-
 # buildType-Variante sorgen dafür, dass Reflektion-getriebene

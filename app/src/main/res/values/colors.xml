@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#1565C0</color>
-    <color name="primary_dark">#003C8F</color>
-    <color name="accent">#FFB300</color>
-    <color name="warn">#E53935</color>
+    <!-- Industrial Precision 2.0 (Stitch-Referenz) -->
+    <color name="primary">#005EB8</color>
+    <color name="primary_dark">#003A73</color>
+    <color name="accent">#EE3124</color>
+    <color name="warn">#EE3124</color>
     <color name="ok">#2E7D32</color>
-    <color name="bg">#0D1117</color>
-    <color name="surface">#161B22</color>
-    <color name="on_surface">#E6EDF3</color>
-    <color name="ic_launcher_background">#0D1117</color>
+    <color name="bg">#1A1C1E</color>
+    <color name="surface">#23272C</color>
+    <color name="on_surface">#F8F9FA</color>
+    <color name="ic_launcher_background">#005EB8</color>
 </resources>

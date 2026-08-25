@@ -13,7 +13,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "wischiwaschi"
+rootProject.name = "secureguard"
 include ':app'
 // Build-Zeit-Stub für das Honeywell DataCollection SDK (siehe aidc-stub/README.md)
 include ':aidc-stub'

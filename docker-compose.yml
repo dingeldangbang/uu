@@ -1,4 +1,4 @@
-# Compose für einen reproduzierbaren wischiwaschi-Android-Build.
+# Compose für einen reproduzierbaren SecureGuard-Android-Build.
 #
 # Usage:
 #   docker compose build secureguard         # Toolchain-Image bauen (JDK17+SDK34)
@@ -14,8 +14,8 @@ services:
       dockerfile: Dockerfile
       args:
         CMDLINE_TOOLS_VERSION: "${CMDLINE_TOOLS_VERSION:-11076708}"
-    image: wischiwaschi-build:latest
-    container_name: wischiwaschi-build
+    image: SecureGuard-build:latest
+    container_name: SecureGuard-build
     working_dir: /src
     volumes:
       - .:/src

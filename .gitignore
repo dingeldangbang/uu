@@ -21,7 +21,12 @@ toolchain.env
 # ── Secrets — niemals committen ───────────────────────────
 *.jks
 *.keystore
+*.p12
+*.pem
+*.b64
+signing/
 app/secureguard-keystore.jks
+app/secureguard-keystore.p12
 keystore.b64
 .env
 .env.local

@@ -15,7 +15,7 @@
 //    2. app/libs/aidc.aar ablegen
 //    3. In app/build.gradle `implementation project(':aidc-stub')`
 //       durch `implementation fileTree(dir: 'libs', include: ['*.aar'])`
-//       ersetzen (siehe auch Workflow honeywell-experimental.yml)
+//       ersetzen (siehe aidc-stub/README.md)
 // ─────────────────────────────────────────────────────────────
 
 plugins {
