@@ -113,7 +113,7 @@ class SeedDataInitializer @Inject constructor(
                 category      = AssetCategory.DEVICE,
                 latitude      = 51.22800,
                 longitude     = 6.77400,
-                location      = "Hauptbahnhof",
+                location      = "Stadtpark",
                 batteryPercent = 67,
                 rssi          = -70,
                 status        = AssetStatus.SEARCHING,

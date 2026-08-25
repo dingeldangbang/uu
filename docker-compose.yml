@@ -32,7 +32,7 @@ services:
       bash -c "set -uo pipefail;
                echo '::notice::CONTAINER-START';
                if [ -n \"$${KEYSTORE_BASE64:-}\" ]; then
-                 echo \"$$KEYSTORE_BASE64\" | base64 -d > app/secureguard-keystore.jks;
+                 echo \"$$KEYSTORE_BASE64\" | base64 -d > app/secureguard-keystore.p12;
                else
                  echo 'Hinweis: KEYSTORE_BASE64 nicht gesetzt — unsigned Check-Build.';
                fi;

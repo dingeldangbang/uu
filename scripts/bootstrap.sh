@@ -5,7 +5,7 @@
 # installiert (falls fehlt)
 #   1) Java 17      → scripts/install-java.sh
 #   2) Android SDK  → scripts/install-android-sdk.sh
-# bringt danach den Gradle-Wrapper auf und prue
+# bringt danach den Gradle-Wrapper auf und prüft:
 #   3) Gradle-Wrapper vorhanden + ./gradlew --version
 
 set -euo pipefail
@@ -16,7 +16,7 @@ cd "$ROOT"
 say() { printf '\033[1;34m[bootstrap]\033[0m %s\n' "$*"; }
 
 # OS-Hinweise
-say "=====  Systemvorraussetzungen  ====="
+say "=====  Systemvoraussetzungen  ====="
 say "OS=$(uname -a)"
 say ""
 
