@@ -38,6 +38,11 @@ jobs:
             tail -n 300 build.log 2>/dev/null || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f build.log ]]; then
+            tail -n 120 build.log | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+          fi
       - name: Upload Gradle diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
