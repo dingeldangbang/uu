@@ -45,9 +45,9 @@ class LiteRtLocalEngine(private val context: Context) : LocalInferenceEngine {
                     engine = it
                 }
                 val promptWithContext = buildString {
-                    if (context.isNotEmpty()) {
+                    if (retrievedContext.isNotEmpty()) {
                         append("Kontext:\n")
-                        append(context.joinToString("\n"))
+                        append(retrievedContext.joinToString("\n"))
                         append("\n\n")
                     }
                     append("Anfrage: ")
