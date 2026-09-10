@@ -26,7 +26,7 @@ class LiteRtLocalEngine(private val context: Context) : LocalInferenceEngine {
     private val modelFile: File
         get() = File(context.filesDir, MODEL_NAME)
 
-    override suspend fun infer(prompt: String, context: List<String>): LocalResult = mutex.withLock {
+    override suspend fun infer(prompt: String, retrievedContext: List<String>): LocalResult = mutex.withLock {
         withContext(Dispatchers.IO) {
             if (!modelFile.isFile || modelFile.length() == 0L) {
                 return@withContext LocalResult.Unavailable(

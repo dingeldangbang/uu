@@ -33,6 +33,7 @@ class AgentRepository(
 
         val result = if (online && hasCloud && complexity != TaskComplexity.LOCAL_ONLY) {
             runCatching { cloudClient.run(safePrompt, documents) }
+                .map { cloud -> AgentResult(cloud.text, cloud.source) }
                 .getOrElse { fallback(safePrompt, documents, "local_fallback") }
         } else {
             fallback(safePrompt, documents, if (online) "local" else "local_offline")

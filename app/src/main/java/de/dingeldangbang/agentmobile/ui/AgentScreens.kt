@@ -187,8 +187,3 @@ fun AgentSettingsScreen(application: AgentApplication, onBack: () -> Unit) {
         }
     }
 }
-
-@Composable
-private fun kotlinx.coroutines.flow.StateFlow<MainUiState>.collectAsStateWithLifecycleCompat(): androidx.compose.runtime.State<MainUiState> {
-    return androidx.compose.runtime.collectAsState(this)
-}
