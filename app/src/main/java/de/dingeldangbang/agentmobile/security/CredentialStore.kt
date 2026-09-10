@@ -1,11 +1,12 @@
 package de.dingeldangbang.agentmobile.security
 
 import android.content.Context
-import android.net.Uri
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.nio.charset.StandardCharsets
+import java.net.URI
+import java.net.URISyntaxException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -19,7 +20,11 @@ object EndpointNormalizer {
     fun normalize(raw: String): String {
         val value = raw.trim().trimEnd('/')
         require(value.isNotBlank()) { "Endpoint darf nicht leer sein." }
-        val uri = Uri.parse(value)
+        val uri = try {
+            URI(value)
+        } catch (error: URISyntaxException) {
+            throw IllegalArgumentException("Endpoint ist keine gültige URL.", error)
+        }
         require(uri.scheme?.equals("https", ignoreCase = true) == true) {
             "Nur HTTPS-Endpunkte sind erlaubt."
         }
