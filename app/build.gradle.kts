@@ -59,10 +59,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -77,14 +73,20 @@ android {
     }
 }
 
-val composeBom = platform("androidx.compose:compose-bom:2024.06.00")
+val composeBom = "androidx.compose:compose-bom:2024.06.00"
 val roomVersion = "2.8.4"
 val moshiVersion = "1.15.2"
 
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
 dependencies {
-    implementation(composeBom)
-    androidTestImplementation(composeBom)
+    implementation(platform(composeBom))
+    androidTestImplementation(platform(composeBom))
 
     implementation("androidx.core:core-ktx:1.16.0")
     implementation("androidx.activity:activity-compose:1.10.1")
