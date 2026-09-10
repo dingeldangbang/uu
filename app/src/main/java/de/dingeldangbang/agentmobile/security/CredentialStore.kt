@@ -20,7 +20,7 @@ object EndpointNormalizer {
         val value = raw.trim().trimEnd('/')
         require(value.isNotBlank()) { "Endpoint darf nicht leer sein." }
         val uri = Uri.parse(value)
-        require(uri.scheme.equals("https", ignoreCase = true)) {
+        require(uri.scheme?.equals("https", ignoreCase = true) == true) {
             "Nur HTTPS-Endpunkte sind erlaubt."
         }
         require(!uri.host.isNullOrBlank()) { "Der Endpoint muss einen Host enthalten." }
