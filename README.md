@@ -43,6 +43,26 @@ $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/ap
 sha256sum app/build/outputs/apk/release/app-release.apk
 ```
 
+## GitHub CI/CD release
+
+The normal Android CI runs unit tests and produces a debug APK on every push and pull request. The release workflow is deliberately restricted to manual runs and `v*` tags. It requires a persistent signing key so updates keep the same Android signing identity; no keystore is generated or stored by GitHub automatically.
+
+After creating and backing up the local keystore, configure the four GitHub Actions secrets with the GitHub CLI:
+
+```bash
+./scripts/create-release-keystore.sh
+./scripts/configure-github-signing.sh
+```
+
+The script sets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` on the current repository. A signed, `apksigner`-verified APK is uploaded as a workflow artifact. Pushing a version tag also publishes the APK and its SHA-256 file as a GitHub Release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Do not print, commit, or paste the keystore or its passwords. Store a second encrypted backup of the keystore before publishing an update.
+
 ## Local model
 
 The app accepts a compatible LiteRT-LM `.litertlm` model through Settings. Model files are large and model licenses vary, so no model is downloaded or committed automatically. Use a model from a source whose license permits your intended distribution.
