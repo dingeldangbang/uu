@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local Android configuration
+local.properties
+.idea/
+*.iml
+.externalNativeBuild/
+.cxx/
+
+# Signing and secrets
+.secrets/
+keystore.properties
+*.jks
+*.keystore
+
+# Generated / downloaded model assets
+app/src/main/assets/model.onnx
+app/src/main/assets/vocab.txt
+app/src/main/assets/*.litertlm
+app/src/main/assets/*.task
+app/src/main/jniLibs/
+artifacts/
+
+# OS/editor
+.DS_Store
+Thumbs.db
