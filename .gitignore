@@ -1,47 +1,29 @@
-# ── Gradle ────────────────────────────────────────────────
-.gradle
+# Gradle
+.gradle/
 build/
 **/build/
-.kotlin/
-out/
-*.iml
 
-# ── Android / lokale Konfiguration ─────────────────────────
-/local.properties
+# Local Android configuration
 local.properties
-*.log
-captures/
-.externalNativeBuild
-.cxx
-
-# ── Toolchain (scripts/setup-toolchain.sh) ─────────────────
-toolchain.env
-.env-start
-
-# ── Secrets — niemals committen ───────────────────────────
-*.keystore
-*.p12
-*.pem
-*.b64
-signing/
-app/secureguard-keystore.p12
-keystore.b64
-.env
-.env.local
-
-# ── Build-Artefakte ───────────────────────────────────────
-*.apk
-*.aab
-dist/
-
-# ── Proprietäre AARs (z. B. Honeywell DataCollection SDK) ──
-# SDK-AARs NIEMALS committen — Lizenz + Größe + evtl. NDA.
-# Bauen tun wir gegen :aidc-stub (siehe aidc-stub/README.md).
-app/libs/
-*.aar
-
-# ── IDE / Tooling ─────────────────────────────────────────
 .idea/
-.vscode/
+*.iml
+.externalNativeBuild/
+.cxx/
+
+# Signing and secrets
+.secrets/
+keystore.properties
+*.jks
+*.keystore
+
+# Generated / downloaded model assets
+app/src/main/assets/model.onnx
+app/src/main/assets/vocab.txt
+app/src/main/assets/*.litertlm
+app/src/main/assets/*.task
+app/src/main/jniLibs/
+artifacts/
+
+# OS/editor
 .DS_Store
-node_modules/
+Thumbs.db

@@ -1,118 +1,95 @@
-# 🛡️ SecureGuard Enterprise
+# Agent Mobile
 
-Asset-Tracking- & Sicherheits-App für **Android 11+** (Zielgerät: Honeywell CT45P).
-Kotlin · Jetpack Compose · Room · Hilt · WorkManager — Ortung über **11 Kanäle**
-(BLE, WiFi, GNSS, LoRa, Mesh, …) mit selbstlernendem Agent und Hardware-Barcode-Scanner.
+Offline-first Android agent app for Android 11–16.
 
-Design-Referenz: Stitch-Projekt „AccessOps" — Palette **Industrial Precision 2.0**
-(`#005EB8` · `#1A1C1E` · `#EE3124` · `#F8F9FA`), Schrift **Inter**.
-Details: [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md).
+## Scope
 
-![CI](https://github.com/dingeldangbang/uu/actions/workflows/ci.yml/badge.svg?branch=main)
-![Release](https://github.com/dingeldangbang/uu/actions/workflows/build-release.yml/badge.svg?branch=main)
+- `minSdk 30` (Android 11), `targetSdk 36` (Android 16)
+- Compose UI with an explicit edge-to-edge layout
+- Optional HTTPS cloud adapter (`GET /health`, `POST /api/v1/runFlow`)
+- Android Keystore-backed AES-GCM storage for the endpoint and bearer token
+- Room history/document storage with a safe LIKE fallback for local context
+- Optional LiteRT-LM `.litertlm` model import; models are deliberately not stored in Git or bundled into the APK
+- Cloud failures fall back to the local path and never log the bearer token
 
----
+The cloud service is intentionally adapter-based because no production endpoint was supplied. Configure it from the Settings screen after installing the APK.
 
-## 📦 Lokal bauen
+## Build requirements
 
-```bash
-# Toolchain einmalig einrichten (JDK 17 + Android SDK 34 + local.properties):
-make toolchain          # bzw. bash scripts/setup-toolchain.sh
-source toolchain.env    # JAVA_HOME / ANDROID_HOME / PATH
-
-make doctor             # prüft Toolchain + Erreichbarkeit der Download-Quellen
-
-./gradlew assembleDebug # Debug-APK
-```
-
-`make toolchain` lädt Temurin **JDK 17** und die Android **cmdline-tools +
-platforms;android-34/26 + build-tools;34.0.0**, akzeptiert die Lizenzen und
-schreibt `sdk.dir` nach `local.properties`.
-
-> **Gesperrtes Netz?** Der Build braucht `dl.google.com`, `repo.maven.apache.org` und
-> `services.gradle.org`. Sind die geblockt, meldet das `make doctor` sofort.
-> Fallbacks: `make docker-build` (Dockerfile bringt die komplette Toolchain mit)
-> oder ein Push/PR → CI baut auf GitHub-Runnern.
+- JDK 17
+- Gradle 8.13 via the checked-in wrapper
+- Android SDK Platform 36 and Build Tools 35.0.0
 
 ```bash
-# Release (signiert):
-KEYSTORE_PASSWORD=... KEY_ALIAS=secureguard KEY_PASSWORD=... \
-./gradlew assembleRelease    # → app/build/outputs/apk/release/
+./gradlew testDebugUnitTest
+./gradlew :app:assembleDebug
 ```
 
-Das Release-Signing erwartet `app/secureguard-keystore.p12` (PKCS12, liegt **nie** im Repo).
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-## 🚀 Release-Pipeline (GitHub Actions)
+## Release signing
 
-Workflow **„Release"** (`build-release.yml`) — baut die signierte APK und
-veröffentlicht sie als GitHub-Release-Asset (inkl. SHA256SUMS).
+A release keystore is never committed. To create a local release keystore:
 
-> **Einmalige Admin-Einrichtung:** GitHub erlaubt das Anlegen von
-> `.github/workflows/*` und das Setzen von Actions-Secrets nur Konten mit
-> `workflows`-/`secrets`-Berechtigung. Deshalb liegen die Workflows als
-> Vorlagen unter [`docs/workflows/`](docs/workflows/) bereit:
->
-> ```bash
-> bash scripts/install-workflows.sh     # kopiert Vorlagen nach .github/workflows/
-> git add .github/workflows && git commit -m "ci: Workflows aktivieren" && git push
->
-> bash scripts/set-release-secrets.sh signing/secureguard-keystore.p12
-> ```
+```bash
+./scripts/create-release-keystore.sh
+./gradlew :app:assembleRelease
+```
 
-1. **Keystore erzeugen** (PKCS12, ohne keytool):
-   ```bash
-   openssl req -x509 -newkey rsa:2048 -nodes -days 10950 \
-     -keyout key.pem -out cert.pem \
-     -subj "/CN=SecureGuard Enterprise/O=SecureGuard/C=DE"
-   openssl pkcs12 -export -out secureguard-keystore.p12 \
-     -inkey key.pem -in cert.pem -name secureguard \
-     -passout pass:<KEIN-SICHERES-PASSWORT>
-   base64 -w 0 secureguard-keystore.p12   # → Inhalt für KEYSTORE_BASE64
-   ```
+The script stores the keystore and its properties below `.secrets/`, which is ignored by Git. Back up the keystore and password before publishing updates. Verify a release APK with:
 
-2. **Secrets setzen** — entweder per Skript
-   `bash scripts/set-release-secrets.sh signing/secureguard-keystore.p12`
-   oder manuell (Repo → Settings → Secrets and variables → Actions):
+```bash
+$ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/release/app-release.apk
+sha256sum app/build/outputs/apk/release/app-release.apk
+```
 
-   | Secret | Wert |
-   | --- | --- |
-   | `KEYSTORE_BASE64` | `base64 -w 0 secureguard-keystore.p12` |
-   | `KEYSTORE_PASSWORD` | Keystore-Passwort |
-   | `KEY_ALIAS` | `secureguard` |
-   | `KEY_PASSWORD` | Key-Passwort |
+## GitHub CI/CD release
 
-3. **Tag pushen** (löst den Release-Workflow aus):
-   ```bash
-   git tag v1.0.0 && git push origin v1.0.0
-   ```
-   Alternativ manuell: Actions → Release → **Run workflow**.
+The normal Android CI runs unit tests and produces a debug APK on every push and pull request. The release workflow is deliberately restricted to manual runs and `v*` tags. It requires a persistent signing key so updates keep the same Android signing identity; no keystore is generated or stored by GitHub automatically.
 
-4. **Ergebnis:** GitHub-Release mit signierter **`app-release.apk`** + Prüfsumme.
+After creating and backing up the local keystore, configure the four GitHub Actions secrets with the GitHub CLI:
 
-## 🧪 CI-Checks
+```bash
+./scripts/create-release-keystore.sh
+./scripts/configure-github-signing.sh
+```
 
-| Workflow | Wann | Inhalt |
-| --- | --- | --- |
-| `ci.yml` | Push (main/develop), PR, manuell | Debug-Build → Unit-Tests → Lint → APK-Artefakt |
-| `build-release.yml` | Tag `v*`, manuell | Signierte Release-APK + GitHub-Release |
+The script sets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` on the current repository. A signed, `apksigner`-verified APK is uploaded as a workflow artifact. Pushing a version tag also publishes the APK and its SHA-256 file as a GitHub Release:
 
-## 🔃 Honeywell DataCollection SDK (CT45P)
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
-Das echte AIDC-SDK wird nur über das Honeywell Tech-Portal als AAR verteilt
-(nicht in öffentlichen Maven-Repos). Deshalb kompiliert die App gegen den
-**Build-Zeit-Stub `:aidc-stub`**: Auf Nicht-Honeywell-Geräten meldet
-`HoneywellScanner.isAvailable()` ehrlich `false`, die App bleibt stabil.
+Do not print, commit, or paste the keystore or its passwords. Store a second encrypted backup of the keystore before publishing an update.
 
-Echtes AAR einbinden: `app/libs/aidc.aar` ablegen und in `app/build.gradle`
-`implementation project(':aidc-stub')` durch
-`implementation fileTree(dir: 'libs', include: ['*.aar'])` ersetzen —
-Details in [`aidc-stub/README.md`](aidc-stub/README.md).
+## Local model
 
-## 📚 Dokumente
+The app accepts a compatible LiteRT-LM `.litertlm` model through Settings. Model files are large and model licenses vary, so no model is downloaded or committed automatically. Use a model from a source whose license permits your intended distribution.
 
-- [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) — Funktionen, Struktur, Tech-Stack
-- [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) — Industrial-Precision-2.0-Palette (Stitch)
-- [`docs/SETUP.md`](docs/SETUP.md) — Build-Umgebung (Docker / nativ / manuell)
-- [`docs/ANDROID11_COMPAT.md`](docs/ANDROID11_COMPAT.md) — CT45P-/Android-11-Spezifika
-- [`docs/BERECHTIGUNGS-AUDIT.md`](docs/BERECHTIGUNGS-AUDIT.md) — Permission-Matrix
-- [`BETRIEBSVEREINBARUNG.md`](BETRIEBSVEREINBARUNG.md) — DSGVO/BDSG-Blaupause (Pilot: nicht an UI gebunden)
+## Cloud contract
+
+The current adapter expects:
+
+```http
+GET /health
+Authorization: Bearer <token>   # optional, depending on the service
+
+POST /api/v1/runFlow
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{"request":"...","context":["..."]}
+```
+
+Expected response:
+
+```json
+{"result":"..."}
+```
+
+`output` is also accepted as a compatibility alias. The real backend must be tested separately once its HTTPS URL and contract are available.
+
+## Compatibility notes
+
+Android 15+ imposes execution limits on `dataSync` foreground services. This project does not use a persistent data-sync foreground service for agent requests; the request is scoped to the visible app and the model engine is explicitly closed when replaced. Long-running background synchronization should be added as a WorkManager job only after a concrete sync contract exists.
